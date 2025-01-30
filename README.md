@@ -24,6 +24,7 @@ ELASTICSEARCH_PORT=[puerto de Elasticsearch]
 DEBUG=[True o False, habilitar/deshabilitar depuración]
 ```
 
+
 ### Requisitos
 
 - **Python 3.x**
@@ -74,3 +75,13 @@ python manage.py runserver
 ```
 
 El servidor estará disponible en `http://127.0.0.1:8000/`.
+
+## Licencia
+
+Este proyecto es parte de `observatorios`.
+
+`observatorios_crud` es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la **GNU General Public License** tal como está publicada por la **Free Software Foundation**, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
+
+Este programa se distribuye con la esperanza de que sea útil, pero **SIN NINGUNA GARANTÍA**; incluso sin la garantía implícita de **COMERCIABILIDAD** o **IDONEIDAD PARA UN PROPÓSITO PARTICULAR**. Consulta la [GNU General Public License](https://www.gnu.org/licenses/) para más detalles.
+
+[https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
