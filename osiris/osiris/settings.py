@@ -14,6 +14,9 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
@@ -37,9 +40,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # 'haystack',
     'rest_framework',
-    'observatories'
+    'apps.observatories'
 
 ]
 
@@ -136,12 +138,18 @@ HAYSTACK_CONNECTIONS = {
     },
 }
 
+
+
+ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")  
+ELASTICSEARCH_PORT = os.getenv("ELASTICSEARCH_PORT") 
+ELASTICSEARCH_MAIN_INDEX = os.getenv("ELASTICSEARCH_MAIN_INDEX") 
+
+
 ELASTICSEARCH_DSL = {
     'default': {
-        'HOST': 'localhost',  # Dirección de tu servidor Elasticsearch
-        'PORT': 9200,         # Puerto de Elasticsearch
+        'HOST': ELASTICSEARCH_HOST,  # Dirección de tu servidor Elasticsearch
+        'PORT': ELASTICSEARCH_PORT,         # Puerto de Elasticsearch
     },
 }
 
-ELASTICSEARCH_HOST = 'localhost'
-ELASTICSEARCH_PORT = 9200
+ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
