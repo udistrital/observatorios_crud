@@ -40,8 +40,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "drf_yasg",
     'rest_framework',
-    'apps.observatories'
+    'apps.observatorios'
 
 ]
 
@@ -153,3 +154,7 @@ ELASTICSEARCH_DSL = {
 }
 
 ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+
+SWAGGER_SETTINGS = {
+   'USE_SESSION_AUTH': False
+}

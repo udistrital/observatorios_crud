@@ -4,87 +4,82 @@ from django.db import models
 
 
 #TODO mejorar esta clase
-class ElasticField:
-    def __init__(self, field_type=None, validators=None, default = None ):
-        self.field_type = field_type
-        self.validators = validators or []
-        if default: self.value =  default
+class ElasticCampo:
+    def __init__(self, tipo_campo=None, validadores=None, valor_por_defecto=None):
+        
+        self.tipo_campo = tipo_campo
+        self.validadores = validadores or []
+        if valor_por_defecto:
+            self.valor = valor_por_defecto
 
-    def set_value(self, value):
+    def establecer_valor(self, valor):
         """Método para actualizar el valor del campo y ejecutar validaciones."""
-        self.value = value
-        self._validate()
+        self.valor = valor
+        self._validar()
 
-    def get_value(self):
+    def obtener_valor(self):
         """Retorna el valor del campo."""
-        return self.value
+        return self.valor
 
-    def _validate(self):
+    def _validar(self):
         """Método que ejecuta las validaciones sobre el valor del campo."""
-        if self.value and self.field_type:
-            if not isinstance(self.value, self.field_type):
-                raise ValueError(f"Expected type {self.field_type} for value, got {type(self.value)}")
+        if self.valor and self.tipo_campo:
+            if not isinstance(self.valor, self.tipo_campo):
+                raise ValueError(f"Se esperaba un tipo {self.tipo_campo} para el valor, pero se obtuvo {type(self.valor)}")
         
         # Ejecutar validadores adicionales si están definidos
-        for validator in self.validators:
-            validator(self.value)
+        for validador in self.validadores:
+            validador(self.valor)
 
 
-class ElasticSearchModel():
+class ModeloElasticSearch:
 
     def __init__(self, **kwargs):
-        # Asigna valores desde kwargs a los campos ElasticField
+        # Asigna valores desde kwargs a los campos CampoElástico
         super().__init__()
 
-        for key, field in self._get_elastic_fields():
-            if key in kwargs:
-                getattr(self, key).set_value(kwargs[key])
+        for clave, campo in self._obtener_campos_elastic():
+            if clave in kwargs:
+                getattr(self, clave).establecer_valor(kwargs[clave])
 
+    def ejecutar_validadores(self):
+        """Ejecuta los validadores sobre los campos del modelo."""
+        for _, campo in self._obtener_campos_elastic():
+            campo._validar()
+        return "Validadores ejecutados exitosamente."
 
-    def execute_validators(self):
-        """Ejecuta validadores sobre los campos del observatorio."""
-        for _, field in self._get_elastic_fields():
-            field._validate()
-        return "Validators executed successfully."
+    def obtener_documento(self):
+        """Construye el documento a indexar en Elasticsearch."""
+        documento = {clave: campo.obtener_valor() for clave, campo in self._obtener_campos_elastic()}
+        print(documento)
+        return documento
 
-
-    def get_document(self):
-
-        """Construye el documento a indexar para Elasticsearch."""
-        document =  {key: field.get_value() for key, field in self._get_elastic_fields()}
-        print(document)
-        return document
-    
-
-    def create(self, es, index_name):
+    def crear(self, es, nombre_indice):
         """
-        Crea un item del modelo desde un diccionario de datos.
+        Crea un ítem del modelo desde un diccionario de datos.
         
         :param es: Cliente de Elasticsearch.
-        :param data: Diccionario de datos.
-        :param index_name: Nombre del índice.
+        :param nombre_indice: Nombre del índice.
         :return: Resultado de la operación.
         """
 
-        
         # Ejecutar validadores
-        self.execute_validators()
+        self.ejecutar_validadores()
 
         # Crear el documento y guardarlo
-        document = self.get_document()
-        data =  es.index(index=index_name, body=document)
-        print(data, document)
-        return f"Observatory created and indexed."
-        
+        documento = self.obtener_documento()
+        datos = es.index(index=nombre_indice, body=documento)
 
-    def _get_elastic_fields(self):
-        # Retorna los nombres de los campos tipo ElasticField en la clase
+        return "Modelo creado e indexado exitosamente."
+
+    def _obtener_campos_elastic(self):
+        """Retorna los nombres de los campos de tipo CampoElástico en la clase."""
         return [
-            (name, getattr(self, name))  # Obtiene el valor real del atributo
-            for name in dir(self)
-            if isinstance(getattr(self, name), ElasticField)  # Filtra solo los de tipo ElasticField
+            (nombre, getattr(self, nombre))  # Obtiene el valor real del atributo
+            for nombre in dir(self)
+            if isinstance(getattr(self, nombre), ElasticCampo)
         ]
-    
 
-class AuditModel(ElasticSearchModel):
-    is_active =  ElasticField(bool, default=True)
+class AuditoriaModelo(ModeloElasticSearch):
+    activo =  ElasticCampo(bool, valor_por_defecto=True)
+    #TODO: Fecha de craciòn, modificaciòn y usuario

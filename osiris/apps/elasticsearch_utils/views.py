@@ -8,13 +8,13 @@ class ElasticsearchViewSet(viewsets.ViewSet):
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        self._index_name = "sair_index"
+        self._nombre_indice = "sair_index"
 
     # Conectar a Elasticsearch
     def get_elasticsearch_client(self):
         return Elasticsearch(ES_HOST)
 
-    def get_query(self):
+    def obtener_busqueda(self):
         return {
             "query": {
                 "match_all": {}
@@ -22,82 +22,73 @@ class ElasticsearchViewSet(viewsets.ViewSet):
         }
     
     def get_queryset(self):
+        cliente = self.get_elasticsearch_client()
 
-        client =  self.get_elasticsearch_client()
-
-        search_result = client.search(
-            index=self._index_name,  #TODO manejar los indices con base a la sesion
-            body= self.get_query()
+        resultado_busqueda = cliente.search(
+            index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
+            body=self.obtener_busqueda()
         )
 
-
-
-
     # Método para listar los elementos en Elasticsearch
-    def list(self, request,*args, **kwargs):
+    def list(self, request, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
         
-        client = self.get_elasticsearch_client()
-        
-        search_result = client.search(
-            index=self._index_name,  #TODO manejar los indices con base a la sesion
-            body= self.get_query()
+        resultado_busqueda = cliente.search(
+            index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
+            body=self.obtener_busqueda()
         )
 
         #TODO Serializar la respuesta de Elasticsearch
-        results = [ 
+        resultados = [ 
             {**item["_source"], "id": item["_id"]}  
-            for item in search_result['hits']['hits']
-            ]
+            for item in resultado_busqueda['hits']['hits']
+        ]
         
-        return Response(results)
-
+        return Response(resultados)
 
     # Método para obtener un detalle de un objeto por su ID en Elasticsearch
-    def retrieve(self, request, pk=None,  *args, **kwargs):
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
         
-        client = self.get_elasticsearch_client()
-        
-        search_result = client.get(
-            index=self._index_name,  #TODO manejar los indices con base a la sesion
+        resultado_busqueda = cliente.get(
+            index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
             id=pk
         )
-        return Response({**search_result['_source'] , "id": search_result['_id'] })
+        return Response({**resultado_busqueda['_source'], "id": resultado_busqueda['_id']})
 
     # Método para crear un nuevo objeto en Elasticsearch
-    def create(self, request,  *args, **kwargs):
+    def create(self, request, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
+        datos = request.data
 
-        client = self.get_elasticsearch_client()
-        data = request.data
-
-        #TODO Manejar la logica del documento
-        instance = self.elastic_model(**data)
-        response = instance.create(client, self._index_name)
+        #TODO Manejar la lógica del documento
+        instancia = self.elastic_model(**datos)
+        respuesta = instancia.crear(cliente, self._nombre_indice)
         
-        return Response(response, status=status.HTTP_201_CREATED)
-    
+        return Response(respuesta, status=status.HTTP_201_CREATED)
 
     # Método para actualizar un documento en Elasticsearch
     def update(self, request, pk=None, *args, **kwargs):
-        client = self.get_elasticsearch_client()
+        cliente = self.get_elasticsearch_client()
         
-        data = request.data
-        _object = self.elastic_model(**data)
+        datos = request.data
+        objeto = self.elastic_model(**datos)
         
-        response = client.update(
-            index=self._index_name,  # El índice de Elasticsearch
+        respuesta = cliente.update(
+            index=self._nombre_indice,  # El índice de Elasticsearch
             id=pk,
-            body={"doc": _object.get_document() }
+            body={"doc": objeto.obtener_documento()}
         )
-        return Response(response)
+        return Response(respuesta)
 
     # Método para eliminar un documento de Elasticsearch
-    def destroy(self, request, pk=None , *args, **kwargs):
-        client = self.get_elasticsearch_client()
+    def destroy(self, request, pk=None, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
         
-        #TODO logica de borrado de item
-        response = client.update(
-            index=self._index_name,  # El índice de Elasticsearch
+        #TODO lógica de borrado de ítem
+        respuesta = cliente.update(
+            index=self._nombre_indice,  # El índice de Elasticsearch
             id=pk,
-            body={"doc": {"is_active" : False } }
+            body={"doc": {"activo": False}}
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
