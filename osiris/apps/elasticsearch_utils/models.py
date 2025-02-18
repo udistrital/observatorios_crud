@@ -34,6 +34,8 @@ class ElasticCampo:
 
 class ModeloElasticSearch:
 
+    id =  ElasticCampo(str)
+
     def __init__(self, **kwargs):
         # Asigna valores desde kwargs a los campos CampoElástico
         super().__init__()
@@ -51,7 +53,6 @@ class ModeloElasticSearch:
     def obtener_documento(self):
         """Construye el documento a indexar en Elasticsearch."""
         documento = {clave: campo.obtener_valor() for clave, campo in self._obtener_campos_elastic()}
-        print(documento)
         return documento
 
     def crear(self, es, nombre_indice):
@@ -70,15 +71,42 @@ class ModeloElasticSearch:
         documento = self.obtener_documento()
         datos = es.index(index=nombre_indice, body=documento)
 
-        return "Modelo creado e indexado exitosamente."
+        return {**documento, "id": datos["_id"]}
 
     def _obtener_campos_elastic(self):
-        """Retorna los nombres de los campos de tipo CampoElástico en la clase."""
+        """Retorna los nombres de los campos de tipo ElasticCampo en la clase."""
         return [
             (nombre, getattr(self, nombre))  # Obtiene el valor real del atributo
             for nombre in dir(self)
             if isinstance(getattr(self, nombre), ElasticCampo)
         ]
+    
+
+    def get(self, es, nombre_indice, item_id):
+        """
+        Obtiene un ítem desde Elasticsearch por su ID.
+        
+        :param es: Cliente de Elasticsearch.
+        :param nombre_indice: Nombre del índice donde buscar.
+        :param item_id: ID del documento a recuperar.
+        :return: Instancia del modelo 
+        """
+        respuesta = es.get(index=nombre_indice, id=item_id)
+
+        if respuesta["found"]:
+            
+            documento= {**respuesta["_source"] , "id" :respuesta["_id"]}
+            objeto = ModeloElasticSearch(**documento)
+            return objeto
+
+    @staticmethod
+    def generar_datos_masivos(data, index_name):
+        for record in data:
+            yield {
+                "_index": index_name,
+                "_source": record
+            }
+
 
 class AuditoriaModelo(ModeloElasticSearch):
     activo =  ElasticCampo(bool, valor_por_defecto=True)

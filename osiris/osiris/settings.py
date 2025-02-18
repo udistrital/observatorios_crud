@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "drf_yasg",
     'rest_framework',
-    'apps.observatorios'
+    'apps.observatorios',
+    'apps.campos'
 
 ]
 
@@ -158,3 +159,5 @@ ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']
 SWAGGER_SETTINGS = {
    'USE_SESSION_AUTH': False
 }
+
+# APPEND_SLASH=False
