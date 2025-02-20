@@ -14,6 +14,3 @@ COPY .env .env
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Ejecuta las migraciones antes de iniciar el servidor
-CMD python manage.py migrate && \
-    python manage.py runserver 0.0.0.0:8000
