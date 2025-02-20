@@ -145,6 +145,10 @@ HAYSTACK_CONNECTIONS = {
 ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")  
 ELASTICSEARCH_PORT = os.getenv("ELASTICSEARCH_PORT") 
 ELASTICSEARCH_MAIN_INDEX = os.getenv("ELASTICSEARCH_MAIN_INDEX") 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 
 
 ELASTICSEARCH_DSL = {
@@ -159,3 +163,9 @@ ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']
 SWAGGER_SETTINGS = {
    'USE_SESSION_AUTH': False
 }
+
+LANGUAGE_CODE = 'es'
+
+STATIC_URL = 'static/'
+MEDIA_URL = '/media/'  
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

@@ -60,8 +60,20 @@ class ElasticsearchViewSet(viewsets.ViewSet):
     def create(self, request, *args, **kwargs):
         cliente = self.get_elasticsearch_client()
         datos = request.data
+        print(datos)
+        if hasattr(self, "clase_serializador"):
+            serializador =  self.clase_serializador(data= datos)
+            
+            if serializador.is_valid():
+                datos = serializador.data
+                valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
+                datos.update(valores_limpiados)
+            else:
+                return Response(serializador.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
         #TODO Manejar la lógica del documento
+        print(datos)
         instancia = self.elastic_model(**datos)
         respuesta = instancia.crear(cliente, self._nombre_indice)
         

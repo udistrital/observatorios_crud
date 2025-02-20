@@ -1,11 +1,15 @@
 from django.shortcuts import render
 from apps.elasticsearch_utils.views import ElasticsearchViewSet
+
+from .serializers import ObservatorioSerializer
 from .models import ObservatorioModelo
+
 from osiris.settings import ELASTICSEARCH_MAIN_INDEX
-# Create your views here.
+
 class ObservatorioViewSet(ElasticsearchViewSet):
     
     elastic_model = ObservatorioModelo
+    clase_serializador = ObservatorioSerializer
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
@@ -26,6 +30,5 @@ class ObservatorioViewSet(ElasticsearchViewSet):
 
         if not client.indices.exists(index=self._nombre_indice):  
             client.indices.create(index=self._nombre_indice)
-
         return super().create(request, *args, **kwargs)
     
