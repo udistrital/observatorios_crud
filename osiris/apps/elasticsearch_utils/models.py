@@ -9,6 +9,7 @@ class ElasticCampo:
         
         self.tipo_campo = tipo_campo
         self.validadores = validadores or []
+        self.valor = None
         if valor_por_defecto:
             self.valor = valor_por_defecto
 
