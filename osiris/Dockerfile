@@ -7,6 +7,9 @@ WORKDIR /app
 # Copia los archivos de la aplicación al contenedor
 COPY . .
 
+# Copia el archivo .env desde la carpeta padre
+COPY .env .env
+
 # Instala las dependencias
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
