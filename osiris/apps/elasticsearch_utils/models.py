@@ -60,6 +60,8 @@ class ImagenCampo(ElasticCampo):
 
 class ModeloElasticSearch:
 
+    id =  ElasticCampo(str)
+
     def __init__(self, **kwargs):
         # Asigna valores desde kwargs a los campos CampoElástico
         super().__init__()
@@ -118,15 +120,42 @@ class ModeloElasticSearch:
         self.guardar_campos_archivos(es,nombre_indice)
 
 
-        return "Modelo creado e indexado exitosamente."
+        return {**documento, "id": datos["_id"]}
 
     def _obtener_campos_elastic(self):
-        """Retorna los nombres de los campos de tipo CampoElástico en la clase."""
+        """Retorna los nombres de los campos de tipo ElasticCampo en la clase."""
         return [
             (nombre, getattr(self, nombre))  # Obtiene el valor real del atributo
             for nombre in dir(self)
             if isinstance(getattr(self, nombre), (ElasticCampo, ImagenCampo))
         ]
+    
+
+    def get(self, es, nombre_indice, item_id):
+        """
+        Obtiene un ítem desde Elasticsearch por su ID.
+        
+        :param es: Cliente de Elasticsearch.
+        :param nombre_indice: Nombre del índice donde buscar.
+        :param item_id: ID del documento a recuperar.
+        :return: Instancia del modelo 
+        """
+        respuesta = es.get(index=nombre_indice, id=item_id)
+
+        if respuesta["found"]:
+            
+            documento= {**respuesta["_source"] , "id" :respuesta["_id"]}
+            objeto = ModeloElasticSearch(**documento)
+            return objeto
+
+    @staticmethod
+    def generar_datos_masivos(data, index_name):
+        for record in data:
+            yield {
+                "_index": index_name,
+                "_source": record
+            }
+
 
 class AuditoriaModelo(ModeloElasticSearch):
     activo =  ElasticCampo(bool, valor_por_defecto=True)
