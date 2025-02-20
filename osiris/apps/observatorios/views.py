@@ -16,14 +16,6 @@ class ObservatorioViewSet(ElasticsearchViewSet):
         self._nombre_indice = ELASTICSEARCH_MAIN_INDEX + "_observatorios"
 
 
-    def obtener_busqueda(self):
-        return {
-            "query" : {
-                "term": {
-                    "activo": True
-                } }
-        }
-
     def create(self, request, *args, **kwargs):
 
         client = self.get_elasticsearch_client()

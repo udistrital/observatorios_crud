@@ -42,7 +42,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "drf_yasg",
     'rest_framework',
-    'apps.observatorios'
+    'apps.observatorios',
+    'apps.datos',
+    'apps.campos'
 
 ]
 
@@ -159,3 +161,10 @@ ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']
 SWAGGER_SETTINGS = {
    'USE_SESSION_AUTH': False
 }
+
+LANGUAGE_CODE = 'es'
+
+STATIC_URL = 'static/'
+MEDIA_URL = '/media/'  
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# APPEND_SLASH=False

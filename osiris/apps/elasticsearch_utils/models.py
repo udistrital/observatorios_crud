@@ -48,15 +48,24 @@ class ImagenCampo(ElasticCampo):
     def save(self):
         # Guardar el archivo manualmente
         file = self.archivo_carga
-        id = uuid.uuid1()
+        id = str(uuid.uuid1())
 
-        file_path = os.path.join(settings.MEDIA_ROOT,self.guardar_en, id + file.name)
+        # Ruta completa del directorio donde se guardará el archivo
+        dir_path = os.path.join(settings.MEDIA_ROOT, self.guardar_en)
 
+        # Verificar si el directorio existe, si no, crearlo
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=True)  # `exist_ok=True` evita errores si otro proceso lo crea al mismo tiempo
+
+        # Ruta completa del archivo
+        file_path = os.path.join(dir_path, id + "-" +  file.name)
+
+        # Guardar el archivo
         with open(file_path, 'wb+') as destination:
             for chunk in file.chunks():
                 destination.write(chunk)
-            
-        return file_path
+
+        return os.path.join(settings.MEDIA_URL, self.guardar_en, id + "-" +  file.name).replace("\\", "/")
 
 
 class ModeloElasticSearch:
@@ -97,6 +106,7 @@ class ModeloElasticSearch:
         
         for clave, campo in self._obtener_campos_elastic():
             if isinstance(campo, (ImagenCampo)): urls[clave] = campo.save() 
+
 
         es.update(
             index=nombre_indice,  # El índice de Elasticsearch

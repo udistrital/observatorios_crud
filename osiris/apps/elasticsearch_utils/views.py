@@ -4,6 +4,7 @@ from elasticsearch import Elasticsearch
 from django.conf import settings
 from osiris.settings import ES_HOST
 
+import json
 class ElasticsearchViewSet(viewsets.ViewSet):
 
     def initial(self, request, *args, **kwargs):
@@ -16,8 +17,14 @@ class ElasticsearchViewSet(viewsets.ViewSet):
 
     def obtener_busqueda(self):
         return {
+            "size": 10000,
             "query": {
-                "match_all": {}
+                "bool": {
+                    "must": [],
+                    "filter": [],
+                    "should": [],
+                    "must_not": []
+                }
             }
         }
     
@@ -37,6 +44,8 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
             body=self.obtener_busqueda()
         )
+
+        print(len (resultado_busqueda['hits']['hits']))
 
         #TODO Serializar la respuesta de Elasticsearch
         resultados = [ 
@@ -73,7 +82,6 @@ class ElasticsearchViewSet(viewsets.ViewSet):
 
 
         #TODO Manejar la lógica del documento
-        print(datos)
         instancia = self.elastic_model(**datos)
         respuesta = instancia.crear(cliente, self._nombre_indice)
         
