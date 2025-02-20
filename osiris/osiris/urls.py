@@ -26,16 +26,11 @@ urlpatterns = [
     re_path(r"documentacion/^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
 
     ### Observatorios ###
-<<<<<<< Updated upstream
     path("api/<str:version>/", include("apps.observatorios.urls")),
 
     ### Datos (Estructuras) ###
     path("api/<str:version>/", include("apps.datos.urls"))
-]
-=======
-    path("api/<str:version>/", include("apps.observatorios.urls"))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 
->>>>>>> Stashed changes
