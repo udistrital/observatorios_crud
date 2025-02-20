@@ -13,6 +13,7 @@ class ElasticCampo:
         self.guardar_en = guardar_en
         self.tipo_campo = tipo_campo
         self.validadores = validadores or []
+        self.valor = None
         if valor_por_defecto:
             self.valor = valor_por_defecto
 
