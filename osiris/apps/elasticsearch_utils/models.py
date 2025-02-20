@@ -68,10 +68,14 @@ class ModeloElasticSearch:
 
         for clave, campo in self._obtener_campos_elastic():
             if clave in kwargs:
-                print(kwargs.get(clave))
+
+                if isinstance(campo, (ImagenCampo)): 
+                    campo.archivo_carga = kwargs.get(clave)
+                    kwargs[clave] = kwargs.get(clave).name
+
                 getattr(self, clave).establecer_valor(kwargs.get(clave))
 
-                if isinstance(campo, (ImagenCampo)): campo.archivo_carga = kwargs.get(clave)
+                
 
     def ejecutar_validadores(self):
         """Ejecuta los validadores sobre los campos del modelo."""
