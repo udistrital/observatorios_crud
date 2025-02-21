@@ -2,6 +2,8 @@ from django.db import models
 import os
 from django.conf import settings
 import uuid
+import base64
+from pathlib import Path
 
 # Create your models here.
 
@@ -42,7 +44,7 @@ class ImagenCampo(ElasticCampo):
 
     def obtener_valor(self):
         """Retorna el valor del campo."""
-        return self.valor
+        return self.base64
     
     
     def save(self):
@@ -67,6 +69,28 @@ class ImagenCampo(ElasticCampo):
 
         return os.path.join(settings.MEDIA_URL, self.guardar_en, id + "-" +  file.name).replace("\\", "/")
 
+    @property
+    def base64(self):
+
+        if not self.valor: return ""
+
+        ruta =  self.valor.lstrip("/")
+        BASE_DIR_PATH = settings.BASE_DIR
+        full_path = os.path.join(BASE_DIR_PATH, ruta)
+
+        try:
+            with open(full_path, "rb") as archivo_imagen:
+                datos_imagen = archivo_imagen.read()
+
+                imagen_base64 = base64.b64encode(datos_imagen).decode('utf-8')
+
+                return "data:image/png;base64," + imagen_base64
+            
+        except Exception as error:
+            print(error)
+            return ""
+
+
 
 class ModeloElasticSearch:
 
@@ -79,7 +103,7 @@ class ModeloElasticSearch:
         for clave, campo in self._obtener_campos_elastic():
             if clave in kwargs:
 
-                if isinstance(campo, (ImagenCampo)): 
+                if isinstance(campo, (ImagenCampo)) and type(kwargs.get(clave)) not in [type(None), str]: 
                     campo.archivo_carga = kwargs.get(clave)
                     kwargs[clave] = kwargs.get(clave).name
 

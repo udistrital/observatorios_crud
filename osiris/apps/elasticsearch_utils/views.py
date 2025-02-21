@@ -45,11 +45,10 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             body=self.obtener_busqueda()
         )
 
-        print(len (resultado_busqueda['hits']['hits']))
 
         #TODO Serializar la respuesta de Elasticsearch
         resultados = [ 
-            {**item["_source"], "id": item["_id"]}  
+            self.elastic_model(**{**item["_source"], "id": item["_id"]}).obtener_documento()      
             for item in resultado_busqueda['hits']['hits']
         ]
         
