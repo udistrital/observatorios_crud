@@ -42,13 +42,18 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "drf_yasg",
     'rest_framework',
+    "corsheaders",
     'apps.observatorios',
     'apps.datos',
     'apps.campos'
 
 ]
 
+
+CORS_ALLOW_ALL_ORIGINS = True 
+
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
