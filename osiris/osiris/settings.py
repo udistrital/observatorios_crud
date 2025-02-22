@@ -42,12 +42,18 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "drf_yasg",
     'rest_framework',
+    "corsheaders",
     'apps.observatorios',
+    'apps.datos',
     'apps.campos'
 
 ]
 
+
+CORS_ALLOW_ALL_ORIGINS = True 
+
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -145,6 +151,8 @@ HAYSTACK_CONNECTIONS = {
 ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")  
 ELASTICSEARCH_PORT = os.getenv("ELASTICSEARCH_PORT") 
 ELASTICSEARCH_MAIN_INDEX = os.getenv("ELASTICSEARCH_MAIN_INDEX") 
+print(ELASTICSEARCH_HOST)
+
 
 
 ELASTICSEARCH_DSL = {
@@ -160,4 +168,9 @@ SWAGGER_SETTINGS = {
    'USE_SESSION_AUTH': False
 }
 
+LANGUAGE_CODE = 'es'
+
+STATIC_URL = 'static/'
+MEDIA_URL = '/media/'  
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # APPEND_SLASH=False

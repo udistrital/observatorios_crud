@@ -4,6 +4,7 @@ from elasticsearch import Elasticsearch
 from django.conf import settings
 from osiris.settings import ES_HOST
 
+import json
 class ElasticsearchViewSet(viewsets.ViewSet):
 
     def initial(self, request, *args, **kwargs):
@@ -16,8 +17,14 @@ class ElasticsearchViewSet(viewsets.ViewSet):
 
     def obtener_busqueda(self):
         return {
+            "size": 10000,
             "query": {
-                "match_all": {}
+                "bool": {
+                    "must": [],
+                    "filter": [],
+                    "should": [],
+                    "must_not": []
+                }
             }
         }
     
@@ -38,9 +45,10 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             body=self.obtener_busqueda()
         )
 
+
         #TODO Serializar la respuesta de Elasticsearch
         resultados = [ 
-            {**item["_source"], "id": item["_id"]}  
+            self.elastic_model(**{**item["_source"], "id": item["_id"]}).obtener_documento()      
             for item in resultado_busqueda['hits']['hits']
         ]
         
@@ -60,6 +68,17 @@ class ElasticsearchViewSet(viewsets.ViewSet):
     def create(self, request, *args, **kwargs):
         cliente = self.get_elasticsearch_client()
         datos = request.data
+        print(datos)
+        if hasattr(self, "clase_serializador"):
+            serializador =  self.clase_serializador(data= datos)
+            
+            if serializador.is_valid():
+                datos = serializador.data
+                valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
+                datos.update(valores_limpiados)
+            else:
+                return Response(serializador.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
         #TODO Manejar la lógica del documento
         instancia = self.elastic_model(**datos)

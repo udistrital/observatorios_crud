@@ -1,14 +1,21 @@
 from django.db import models
+import os
+from django.conf import settings
+import uuid
+import base64
+from pathlib import Path
 
 # Create your models here.
 
 
 #TODO mejorar esta clase
 class ElasticCampo:
-    def __init__(self, tipo_campo=None, validadores=None, valor_por_defecto=None):
+    def __init__(self, tipo_campo=None, validadores=None, valor_por_defecto=None, guardar_en = ""):
         
+        self.guardar_en = guardar_en
         self.tipo_campo = tipo_campo
         self.validadores = validadores or []
+        self.valor = None
         if valor_por_defecto:
             self.valor = valor_por_defecto
 
@@ -31,6 +38,59 @@ class ElasticCampo:
         for validador in self.validadores:
             validador(self.valor)
 
+class ImagenCampo(ElasticCampo):
+
+    archivo_carga =  None
+
+    def obtener_valor(self):
+        """Retorna el valor del campo."""
+        return self.base64
+    
+    
+    def save(self):
+        # Guardar el archivo manualmente
+        file = self.archivo_carga
+        id = str(uuid.uuid1())
+
+        # Ruta completa del directorio donde se guardará el archivo
+        dir_path = os.path.join(settings.MEDIA_ROOT, self.guardar_en)
+
+        # Verificar si el directorio existe, si no, crearlo
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=True)  # `exist_ok=True` evita errores si otro proceso lo crea al mismo tiempo
+
+        # Ruta completa del archivo
+        file_path = os.path.join(dir_path, id + "-" +  file.name)
+
+        # Guardar el archivo
+        with open(file_path, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+
+        return os.path.join(settings.MEDIA_URL, self.guardar_en, id + "-" +  file.name).replace("\\", "/")
+
+    @property
+    def base64(self):
+
+        if not self.valor: return ""
+
+        ruta =  self.valor.lstrip("/")
+        BASE_DIR_PATH = settings.BASE_DIR
+        full_path = os.path.join(BASE_DIR_PATH, ruta)
+
+        try:
+            with open(full_path, "rb") as archivo_imagen:
+                datos_imagen = archivo_imagen.read()
+
+                imagen_base64 = base64.b64encode(datos_imagen).decode('utf-8')
+
+                return "data:image/png;base64," + imagen_base64
+            
+        except Exception as error:
+            print(error)
+            return ""
+
+
 
 class ModeloElasticSearch:
 
@@ -42,18 +102,42 @@ class ModeloElasticSearch:
 
         for clave, campo in self._obtener_campos_elastic():
             if clave in kwargs:
-                getattr(self, clave).establecer_valor(kwargs[clave])
+
+                if isinstance(campo, (ImagenCampo)) and type(kwargs.get(clave)) not in [type(None), str]: 
+                    campo.archivo_carga = kwargs.get(clave)
+                    kwargs[clave] = kwargs.get(clave).name
+
+                getattr(self, clave).establecer_valor(kwargs.get(clave))
+
+                
 
     def ejecutar_validadores(self):
         """Ejecuta los validadores sobre los campos del modelo."""
+
         for _, campo in self._obtener_campos_elastic():
             campo._validar()
         return "Validadores ejecutados exitosamente."
 
     def obtener_documento(self):
         """Construye el documento a indexar en Elasticsearch."""
+
         documento = {clave: campo.obtener_valor() for clave, campo in self._obtener_campos_elastic()}
         return documento
+
+    def guardar_campos_archivos(self, es, nombre_indice):
+        
+        urls = {}
+        
+        for clave, campo in self._obtener_campos_elastic():
+            if isinstance(campo, (ImagenCampo)): urls[clave] = campo.save() 
+
+
+        es.update(
+            index=nombre_indice,  # El índice de Elasticsearch
+            id=self.id,
+            body={"doc": urls}
+        )
+
 
     def crear(self, es, nombre_indice):
         """
@@ -70,6 +154,10 @@ class ModeloElasticSearch:
         # Crear el documento y guardarlo
         documento = self.obtener_documento()
         datos = es.index(index=nombre_indice, body=documento)
+        self.id =  datos["_id"]
+
+        self.guardar_campos_archivos(es,nombre_indice)
+
 
         return {**documento, "id": datos["_id"]}
 
@@ -78,7 +166,7 @@ class ModeloElasticSearch:
         return [
             (nombre, getattr(self, nombre))  # Obtiene el valor real del atributo
             for nombre in dir(self)
-            if isinstance(getattr(self, nombre), ElasticCampo)
+            if isinstance(getattr(self, nombre), (ElasticCampo, ImagenCampo))
         ]
     
 
