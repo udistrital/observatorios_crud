@@ -28,6 +28,11 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             }
         }
     
+    
+    def obtener_clase_serializador(self):
+        return self.clase_serializador
+
+
     def get_queryset(self):
         cliente = self.get_elasticsearch_client()
 
@@ -48,7 +53,7 @@ class ElasticsearchViewSet(viewsets.ViewSet):
 
         #TODO Serializar la respuesta de Elasticsearch
         resultados = [ 
-            self.elastic_model(**{**item["_source"], "id": item["_id"]}).obtener_documento()      
+            self.elastic_model(**{**item["_source"], "id": item["_id"]}).obtener_documento( imagen_en_base64 = True )      
             for item in resultado_busqueda['hits']['hits']
         ]
         
@@ -94,14 +99,16 @@ class ElasticsearchViewSet(viewsets.ViewSet):
         datos = request.data
 
         if hasattr(self, "clase_serializador"):
-            serializador =  self.clase_serializador(data= datos)
+            serializador =  self.obtener_clase_serializador()(data= datos)
             serializador.is_valid()
-            datos = serializador.data
+            datos = serializador.validated_data
             valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
             datos.update(valores_limpiados)        
-        
-        objeto = self.elastic_model(**{**datos, "id": pk})
-        
+
+        print(datos, serializador.errors, serializador.validated_data, sep="||||||")
+        objeto = self.elastic_model().get(cliente, item_id = pk)
+        objeto.set(**datos)
+        print(objeto.obtener_documento(), "<<<< Documento")
         respuesta = cliente.update(
             index=self._nombre_indice,  # El índice de Elasticsearch
             id=pk,
