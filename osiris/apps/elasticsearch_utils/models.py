@@ -131,10 +131,10 @@ class ModeloElasticSearch:
         for clave, campo in self._obtener_campos_elastic():
             if isinstance(campo, (ImagenCampo)): urls[clave] = campo.save() 
 
-
+        print(self.id)
         es.update(
             index=nombre_indice,  # El índice de Elasticsearch
-            id=self.id,
+            id=self.id.obtener_valor(),
             body={"doc": urls}
         )
 
@@ -154,7 +154,7 @@ class ModeloElasticSearch:
         # Crear el documento y guardarlo
         documento = self.obtener_documento()
         datos = es.index(index=nombre_indice, body=documento)
-        self.id =  datos["_id"]
+        self.id.establecer_valor(datos["_id"])  
 
         self.guardar_campos_archivos(es,nombre_indice)
 

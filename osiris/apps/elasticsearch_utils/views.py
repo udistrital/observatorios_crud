@@ -68,7 +68,7 @@ class ElasticsearchViewSet(viewsets.ViewSet):
     def create(self, request, *args, **kwargs):
         cliente = self.get_elasticsearch_client()
         datos = request.data
-        print(datos)
+
         if hasattr(self, "clase_serializador"):
             serializador =  self.clase_serializador(data= datos)
             
@@ -87,17 +87,28 @@ class ElasticsearchViewSet(viewsets.ViewSet):
         return Response(respuesta, status=status.HTTP_201_CREATED)
 
     # Método para actualizar un documento en Elasticsearch
+    #TODO Manejar existencia en el ID
     def update(self, request, pk=None, *args, **kwargs):
         cliente = self.get_elasticsearch_client()
         
         datos = request.data
-        objeto = self.elastic_model(**datos)
+
+        if hasattr(self, "clase_serializador"):
+            serializador =  self.clase_serializador(data= datos)
+            serializador.is_valid()
+            datos = serializador.data
+            valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
+            datos.update(valores_limpiados)        
+        
+        objeto = self.elastic_model(**{**datos, "id": pk})
         
         respuesta = cliente.update(
             index=self._nombre_indice,  # El índice de Elasticsearch
             id=pk,
             body={"doc": objeto.obtener_documento()}
         )
+
+        objeto.guardar_campos_archivos(cliente, self._nombre_indice)
         return Response(respuesta)
 
     # Método para eliminar un documento de Elasticsearch
