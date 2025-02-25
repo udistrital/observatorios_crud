@@ -23,4 +23,6 @@ class EstructuraCamposModelo(AuditoriaModelo):
     def __str__(self):
         return f"{self.nombre.obtener_valor()} - {self.id}"
 
-    
+    @staticmethod
+    def obtener_indice():
+        return ".estructuras"

@@ -6,11 +6,16 @@ from elasticsearch import helpers
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from osiris.settings import ELASTICSEARCH_MAIN_INDEX
+from apps.utils.utils import ProcesadorRecursos
 
 from .serializers import DatosSerializers
+from apps.campos.models import EstructuraCamposModelo
 
 
 class DatosViewSet(ElasticsearchViewSet):
+
+    procesador = ProcesadorRecursos()
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
@@ -24,7 +29,17 @@ class DatosViewSet(ElasticsearchViewSet):
         tags=["Datos"]
     )
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        cliente = self.get_elasticsearch_client()
+        
+        resultado_busqueda = cliente.search(
+            index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
+            body=self.obtener_busqueda()
+        )
+
+
+        #TODO Serializar la respuesta de Elasticsearch
+        resultados = [ {**item["_source"], "id" : item["_id"] } for item in resultado_busqueda['hits']['hits']]
+        return Response(resultados)
     
     @swagger_auto_schema(
         operation_description="Inactiva un campo en la estructura de campos",
@@ -62,25 +77,28 @@ class DatosViewSet(ElasticsearchViewSet):
     )
     def create(self, request, *args, **kwargs):
 
+        self.cliente = self.get_elasticsearch_client()
         datos_solicitud =  request.data
         formato =   datos_solicitud.get("formato", "FORM")
         estructura_pk =  kwargs.get("estructura_id")
-        estructura =  self.elastic_model().get(self.cliente, self._nombre_indice, estructura_pk)
+        estructura =  EstructuraCamposModelo().get(self.cliente,EstructuraCamposModelo.obtener_indice() , estructura_pk)
         indice_id_estructura = estructura.id.obtener_valor().lower()
+
+
 
         if formato == "CSV":
             #TODO: agregar campo origin
             archivo = request.FILES['archivo']
             datos_procesados = self.procesador.procesar_csv(archivo)
-            resultados = helpers.bulk(self.cliente, self.elastic_model.generar_datos_masivos(datos_procesados, indice_id_estructura)) 
-            resultados, errors = helpers.bulk(self.cliente, self.elastic_model.generar_datos_masivos(datos_procesados, indice_id_estructura))  
+            resultados = helpers.bulk(self.cliente, estructura.generar_datos_masivos(datos_procesados, indice_id_estructura)) 
+            resultados, errors = helpers.bulk(self.cliente, estructura.generar_datos_masivos(datos_procesados, indice_id_estructura))  
             return Response({"message" : f"Se guardaron un total de {resultados}" , "errores" : errors})
 
         if formato == "JSON":
             #TODO: agregar campo origin
             archivo = request.FILES['archivo']
             datos_procesados = self.procesador.procesar_json(archivo)  
-            resultados, errors = helpers.bulk(self.cliente, self.elastic_model.generar_datos_masivos(datos_procesados, indice_id_estructura))  
+            resultados, errors = helpers.bulk(self.cliente, estructura.generar_datos_masivos(datos_procesados, indice_id_estructura))  
             return Response({"message" : f"Se guardaron un total de {resultados}" , "errores" : errors})
         
         if formato == "FORM":

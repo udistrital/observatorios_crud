@@ -24,6 +24,16 @@ class EstructuraCamposViewSet(ElasticsearchViewSet):
     procesador = ProcesadorRecursos()
     cliente =  get_elasticsearch_client()
 
+    
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self._nombre_indice = self.elastic_model.obtener_indice()
+
+        if not self.cliente.indices.exists(index=self._nombre_indice):  
+            self.cliente.indices.create(index=self._nombre_indice)
+
+    
     @swagger_auto_schema(
         operation_description="Crea una nueva estructura de campos",
         request_body=EstructuraSerializer,

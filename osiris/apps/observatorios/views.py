@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from apps.elasticsearch_utils.views import ElasticsearchViewSet
 
 from .serializers import ObservatorioSerializer
