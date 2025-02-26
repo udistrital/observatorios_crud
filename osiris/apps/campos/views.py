@@ -17,11 +17,75 @@ from apps.utils.utils import ProcesadorRecursos
 ### Modulos Internos ###
 from .utils import ELASTICSEARCH_CAMPOS
 from .models import EstructuraCamposModelo
+from .serializers import EstructuraSerializer
 
 class EstructuraCamposViewSet(ElasticsearchViewSet): 
     elastic_model = EstructuraCamposModelo
     procesador = ProcesadorRecursos()
     cliente =  get_elasticsearch_client()
+
+    @swagger_auto_schema(
+        operation_description="Crea una nueva estructura de campos",
+        request_body=EstructuraSerializer,
+        responses={
+            201: EstructuraSerializer,
+            400: openapi.Response(description="Solicitud inválida"),
+        },
+        tags=["Estructura de campos"]
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+
+    @swagger_auto_schema(
+        operation_description="Obtiene una estructura de campos",
+        responses={
+            201: EstructuraSerializer,
+            400: openapi.Response(description="Solicitud inválida"),
+        },
+        tags=["Estructura de campos"]
+    )
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        return super().retrieve(request, pk, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Obtiene una estructura en especifico",
+        responses={
+            201: EstructuraSerializer(many = True),
+            400: openapi.Response(description="Solicitud inválida"),
+        },
+        tags=["Estructura de campos"]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Inactiva una estructura de campos",
+        request_body=EstructuraSerializer,
+        responses={
+            201: {},
+            400: openapi.Response(description="Solicitud inválida"),
+        },
+        tags=["Estructura de campos"]
+    )
+    def destroy(self, request, pk=None, *args, **kwargs):
+        return super().destroy(request, pk, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Actualiza una estructura de campos",
+        request_body=EstructuraSerializer,
+        responses={
+            201: EstructuraSerializer,
+            400: openapi.Response(description="Solicitud inválida"),
+        },
+        tags=["Estructura de campos"]
+    )
+    def update(self, request, pk=None, *args, **kwargs):
+        return super().update(request, pk, *args, **kwargs)
+
+
+
+
 
     @action(detail=True, methods=['post'])
     def insertar(self, request, pk=None, **kwargs):
@@ -70,7 +134,7 @@ class TiposCamposVista(APIView):
                 "application/json": ELASTICSEARCH_CAMPOS
             }
         )},
-        tags=["Campos"]
+        tags=["Estructura de campos"]
     )
 
     def get(self, request, *args, **kwargs):          
