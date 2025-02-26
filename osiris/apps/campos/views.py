@@ -24,6 +24,17 @@ class EstructuraCamposViewSet(ElasticsearchViewSet):
     procesador = ProcesadorRecursos()
     cliente =  get_elasticsearch_client()
 
+    clase_serializador = EstructuraSerializer
+    
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self._nombre_indice = self.elastic_model.obtener_indice()
+
+        if not self.cliente.indices.exists(index=self._nombre_indice):  
+            self.cliente.indices.create(index=self._nombre_indice)
+
+    
     @swagger_auto_schema(
         operation_description="Crea una nueva estructura de campos",
         request_body=EstructuraSerializer,
@@ -85,42 +96,6 @@ class EstructuraCamposViewSet(ElasticsearchViewSet):
 
 
 
-
-
-    @action(detail=True, methods=['post'])
-    def insertar(self, request, pk=None, **kwargs):
-        
-        datos_solicitud =  request.data
-        formato =   datos_solicitud.get("formato", "FORM")
-        estructura =  self.elastic_model().get(self.cliente, self._nombre_indice, pk)
-        indice_id_estructura = estructura.id.obtener_valor().lower()
-
-        if formato == "CSV":
-            #TODO: agregar campo origin
-            archivo = request.FILES['archivo']
-            datos_procesados = self.procesador.procesar_csv(archivo)
-            resultados = helpers.bulk(self.cliente, self.elastic_model.generar_datos_masivos(datos_procesados, indice_id_estructura)) 
-            resultados, errors = helpers.bulk(self.cliente, self.elastic_model.generar_datos_masivos(datos_procesados, indice_id_estructura))  
-            return Response({"message" : f"Se guardaron un total de {resultados}" , "errores" : errors})
-
-        if formato == "JSON":
-            #TODO: agregar campo origin
-            archivo = request.FILES['archivo']
-            datos_procesados = self.procesador.procesar_json(archivo)  
-            resultados, errors = helpers.bulk(self.cliente, self.elastic_model.generar_datos_masivos(datos_procesados, indice_id_estructura))  
-            return Response({"message" : f"Se guardaron un total de {resultados}" , "errores" : errors})
-        
-        if formato == "FORM":
-            
-            datos_solicitud["origin"] = "FORM"
-            respuesta =  self.cliente.index(
-                index = estructura.id.obtener_valor().lower(),
-                document= datos_solicitud
-            )            
-            return Response(respuesta)
-
-
-        return Response({"status" :  "not supported yet"})
 
      
 

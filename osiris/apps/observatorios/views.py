@@ -1,7 +1,6 @@
-from django.shortcuts import render
 from apps.elasticsearch_utils.views import ElasticsearchViewSet
 
-from .serializers import ObservatorioSerializer
+from .serializers import ObservatorioSerializer, ObservatorioUPdateSerializer
 from .models import ObservatorioModelo
 
 from osiris.settings import ELASTICSEARCH_MAIN_INDEX
@@ -12,6 +11,11 @@ class ObservatorioViewSet(ElasticsearchViewSet):
     
     elastic_model = ObservatorioModelo
     clase_serializador = ObservatorioSerializer
+
+    def obtener_clase_serializador(self):
+        if self.action == "update":
+            return ObservatorioUPdateSerializer
+        return self.clase_serializador
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
