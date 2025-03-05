@@ -115,7 +115,6 @@ class DatosViewSet(ElasticsearchViewSet):
         
         if formato == "FORM":
             
-            datos_solicitud["origin"] = "FORM"
             respuesta =  self.cliente.index(
                 index = estructura.id.obtener_valor().lower(),
                 document= datos_solicitud
