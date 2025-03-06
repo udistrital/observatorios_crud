@@ -105,10 +105,8 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
             datos.update(valores_limpiados)        
 
-        print(datos, serializador.errors, serializador.validated_data, sep="||||||")
         objeto = self.elastic_model().get(cliente, item_id = pk)
         objeto.set(**datos)
-        print(objeto.obtener_documento(), "<<<< Documento")
         respuesta = cliente.update(
             index=self._nombre_indice,  # El índice de Elasticsearch
             id=pk,

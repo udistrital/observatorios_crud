@@ -35,6 +35,10 @@ urlpatterns = [
 
     ### Campos ###
     path("api/<str:version>/campos/", include("apps.campos.urls")),
+
+    ### Dashboards ###
+    path("api/<str:version>/", include("apps.dashboards.urls")),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

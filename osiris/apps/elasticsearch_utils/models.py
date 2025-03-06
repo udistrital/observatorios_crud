@@ -130,6 +130,7 @@ class ModeloElasticSearch:
         documento = {clave: campo.obtener_valor(**kwargs) for clave, campo in self._obtener_campos_elastic()}
         return documento
 
+
     def guardar_campos_archivos(self, es, nombre_indice):
         
         urls = {}
@@ -140,7 +141,6 @@ class ModeloElasticSearch:
                 file_path, saved = campo.save()
                 if saved: urls[clave] = file_path 
 
-        print (urls, "<<< URLS funcionality <<<<<<")
         es.update(
             index=nombre_indice,  # El índice de Elasticsearch
             id=self.id.obtener_valor(),
