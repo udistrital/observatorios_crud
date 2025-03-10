@@ -24,6 +24,28 @@ class DatosViewSet(ElasticsearchViewSet):
     procesador = ProcesadorRecursos()
     pagination_class = CustomPagination
 
+    #TODO: Manejar el size de manera dinamca
+    def obtener_busqueda(self):
+        return {
+            "size" : 10000,
+            "query": {
+                "bool": {
+                "should": [
+                    {
+                    "bool": {
+                        "must_not": {
+                        "exists": { "field": "_activo" }
+                        }
+                    }
+                    },
+                    {
+                    "term": { "_activo": True }
+                    }
+                ],
+                "minimum_should_match": 1
+                }
+            }
+        }
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
@@ -61,6 +83,18 @@ class DatosViewSet(ElasticsearchViewSet):
         tags=["Datos"]
     )
     def destroy(self, request, pk=None, *args, **kwargs):
+        if not pk:
+            update_query = {
+                "script": {
+                    "source": "ctx._source['_activo'] = false",  # Reemplaza con el campo y valor deseado
+                    "lang": "painless"
+                }
+            }
+            cliente = self.get_elasticsearch_client()
+            response = cliente.update_by_query(index=self._nombre_indice, body=update_query)
+
+            return Response(response)
+            
         return super().destroy(request, pk, *args, **kwargs)
 
     @swagger_auto_schema(
