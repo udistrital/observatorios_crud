@@ -171,6 +171,7 @@ class DatosViewSet(ElasticsearchViewSet):
 
         if formato == "JSON":
             #TODO: agregar campo origin
+            print(request, request.FILES, request.POST, "LOG 1.1")
             archivo = request.FILES['archivo']
             try:
                 contenido = archivo.read().decode('latin-1')  
