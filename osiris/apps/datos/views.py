@@ -98,8 +98,18 @@ class DatosViewSet(ElasticsearchViewSet):
             response = cliente.update_by_query(index=self._nombre_indice, body=update_query)
 
             return Response(response)
-            
-        return super().destroy(request, pk, *args, **kwargs)
+
+        else:
+            cliente = self.get_elasticsearch_client()
+        
+            #TODO lógica de borrado de ítem
+            respuesta = cliente.update(
+                index=self._nombre_indice,  # El índice de Elasticsearch
+                id=pk,
+                body={"doc": {"_activo": False}}
+            )
+
+            return Response(status=status.HTTP_204_NO_CONTENT)    
 
     @swagger_auto_schema(
         operation_description="Obtiene un item en especifico de la estructura de datos",
@@ -171,7 +181,6 @@ class DatosViewSet(ElasticsearchViewSet):
 
         if formato == "JSON":
             #TODO: agregar campo origin
-            print(request, request.FILES, request.POST, "LOG 1.1")
             archivo = request.FILES['archivo']
             try:
                 contenido = archivo.read().decode('latin-1')  
