@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from apps.elasticsearch_utils.views import ElasticsearchViewSet
+from apps.elasticsearch_utils.utils import obtener_filtros_indice, convertir_django_ordering_a_elastic_ordering
 from rest_framework.response import Response
 from rest_framework import status
 from elasticsearch import helpers
@@ -18,7 +19,7 @@ from apps.campos.models import EstructuraCamposModelo
 from rest_framework.pagination import PageNumberPagination
 
 class CustomPagination(PageNumberPagination):
-    page_size = 5  # Valor por defecto
+    page_size = 50  # Valor por defecto
     page_size_query_param = 'page_size'  # Permite cambiar el tamaño con `?page_size=10`
     max_page_size = 500  # Límite máximo permitido
 
@@ -29,8 +30,23 @@ class DatosViewSet(ElasticsearchViewSet):
     pagination_class = CustomPagination
 
     #TODO: Manejar el size de manera dinamca
-    def obtener_busqueda(self):
-        return {
+    def obtener_busqueda(self, *args, **kwargs):
+
+        ordenamiento = None
+        filtros = []
+
+        excepciones_filtros = ["page_size", "ordering"]
+        if "filtros" in kwargs.keys():
+            filtros = obtener_filtros_indice(nombre_indice = self._nombre_indice, filtros = kwargs["filtros"], filtros_excepcion = excepciones_filtros)
+
+            if "ordering" in kwargs.get("filtros"):
+                ordenamiento = kwargs.get("filtros").get("ordering")
+                ordenamiento = convertir_django_ordering_a_elastic_ordering(self._nombre_indice,ordenamiento)
+                print(ordenamiento)
+
+
+
+        busqueda_elastic = {
             "size" : 10000,
             "query": {
                 "bool": {
@@ -44,12 +60,21 @@ class DatosViewSet(ElasticsearchViewSet):
                     },
                     {
                     "term": { "_activo": True }
-                    }
+                    },
+
                 ],
                 "minimum_should_match": 1
                 }
             }
         }
+
+        if len(filtros) > 0:
+            busqueda_elastic["query"]["bool"]["must"] = filtros
+        
+        if ordenamiento:
+            busqueda_elastic["sort"] = ordenamiento
+
+        return busqueda_elastic
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
@@ -65,10 +90,13 @@ class DatosViewSet(ElasticsearchViewSet):
     def list(self, request, *args, **kwargs):
         cliente = self.get_elasticsearch_client()
         paginador = self.pagination_class()
+        query_params = request.query_params
+
+        print(query_params)
 
         resultado_busqueda = cliente.search(
             index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
-            body=self.obtener_busqueda()
+            body=self.obtener_busqueda(filtros =  query_params)
         )
 
 
@@ -164,7 +192,6 @@ class DatosViewSet(ElasticsearchViewSet):
                                 status=status.HTTP_400_BAD_REQUEST)
             
 
-            print(type(archivo))
             archivo.seek(0)  # Reiniciar el puntero después de la detección
 
 

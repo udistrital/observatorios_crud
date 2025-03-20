@@ -15,7 +15,7 @@ class ElasticsearchViewSet(viewsets.ViewSet):
     def get_elasticsearch_client(self):
         return Elasticsearch(ES_HOST)
 
-    def obtener_busqueda(self):
+    def obtener_busqueda(self, *args, **kwargs):
         return {
             "size": 10000,
             "query": {
