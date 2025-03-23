@@ -5,31 +5,6 @@ def get_elasticsearch_client():
     return Elasticsearch(settings.ES_HOST)
 
 
-# def convertir_django_ordering_a_elastic_ordering(ordering: str) -> list:
-#     """
-#     Convierte un string de ordering en formato Django a formato Elasticsearch.
-    
-#     :param ordering: String de ordenación en formato Django (ej: "-price,name").
-#     :param allowed_fields: Lista de campos permitidos para ordenar.
-#     :return: Lista de diccionarios con formato de Elasticsearch.
-#     """
-#     if not ordering:
-#         return []
-
-#     ordering_fields = ordering.split(",")
-
-#     elastic_sort = []
-#     for field in ordering_fields:
-#         order = "asc"
-#         if field.startswith("-"):
-#             field = field[1:]  # Eliminar el prefijo "-"
-#             order = "desc"
-
-        
-#         elastic_sort.append({field: {"order": order}})
-    
-#     return elastic_sort
-
 def convertir_django_ordering_a_elastic_ordering(indice: str, ordering: str):
     """
     Convierte un string de ordering en formato Django a formato Elasticsearch,
@@ -106,4 +81,4 @@ def obtener_filtros_indice(nombre_indice, filtros, filtros_excepcion=None):
         filter(None, map(lambda item: generar_filtro(*item), filtros.items()))
     )
 
-    return final_filtros
+    return final_filtros    
