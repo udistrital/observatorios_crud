@@ -16,6 +16,27 @@ class DashboardViewSet(ElasticsearchViewSet):
     clase_serializador = DashboardSerializer
     cliente = get_elasticsearch_client()
 
+    def obtener_busqueda(self, *args, **kwargs):
+        busqueda =  {
+            "size": 10000,
+            "query": {
+                "bool": {
+                    "must": [
+                    ]
+                }
+            }
+        }
+    
+
+        if "observatorio" in kwargs and kwargs.get("observatorio") is not None:
+            busqueda["query"]["bool"]["must"].append(
+                    {
+                        "term" : {"observatorio.keyword" :kwargs.get("observatorio") }
+                    }
+                )
+
+        return busqueda
+
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         self._nombre_indice = self.elastic_model.indice
@@ -28,6 +49,23 @@ class DashboardViewSet(ElasticsearchViewSet):
         if self.action == "update": return DashboardUpdateSerializer
 
         return super().obtener_clase_serializador()
+
+
+    def list(self, request, *args, **kwargs):
+        observatorio = request.query_params.get("observatorio")
+        cliente = self.get_elasticsearch_client()
+        
+        resultado_busqueda = cliente.search(
+            index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
+            body=self.obtener_busqueda( observatorio =  observatorio)
+        )
+
+        resultados = [ 
+            self.elastic_model(**{**item["_source"], "id": item["_id"]}).obtener_documento( imagen_en_base64 = True )      
+            for item in resultado_busqueda['hits']['hits']
+        ]
+
+        return Response(resultados)
     
 
 
@@ -35,6 +73,7 @@ class GraficoViewSet(ElasticsearchViewSet):
     elastic_model = Grafico
     clase_serializador = GraficoSerializer
     cliente = get_elasticsearch_client()
+
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
@@ -90,8 +129,9 @@ class GraficoViewSet(ElasticsearchViewSet):
         if hasattr(self, "errors"):
             return Response(self.errors, status=400)
         
-        return super().list(request, *args, **kwargs)
-    
+        super()
+
+        
     @swagger_auto_schema(
         operation_description="Inactiva un observatorio",
         request_body=GraficoSerializer,

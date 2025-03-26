@@ -5,7 +5,8 @@ class ProcesadorRecursos():
     VALIDADORES = [] 
 
     def ejecutar_validadores(self, dataframe):
-        pass
+        for validador in self.VALIDADORES:
+              validador().handle(dataframe)  
 
     
     def procesar_csv(self, archivo) -> dict:
@@ -24,3 +25,9 @@ class ProcesadorRecursos():
             self.ejecutar_validadores(df)
 
             return data
+
+
+class BaseValidador():
+      
+      def handle(self, df):
+            return df
