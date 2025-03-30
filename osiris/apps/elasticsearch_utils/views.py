@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from elasticsearch import Elasticsearch
 from django.conf import settings
 from osiris.settings import ES_HOST
-
 import json
+
 class ElasticsearchViewSet(viewsets.ViewSet):
 
     def initial(self, request, *args, **kwargs):
