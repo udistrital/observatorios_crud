@@ -11,11 +11,19 @@ from apps.utils.utils import ProcesadorRecursos
 
 from .serializers import DatosSerializers
 from apps.campos.models import EstructuraCamposModelo
+from rest_framework.pagination import PageNumberPagination
+
+class CustomPagination(PageNumberPagination):
+    page_size = 5  # Valor por defecto
+    page_size_query_param = 'page_size'  # Permite cambiar el tamaño con `?page_size=10`
+    max_page_size = 500  # Límite máximo permitido
 
 
 class DatosViewSet(ElasticsearchViewSet):
 
     procesador = ProcesadorRecursos()
+    pagination_class = CustomPagination
+
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
@@ -30,16 +38,20 @@ class DatosViewSet(ElasticsearchViewSet):
     )
     def list(self, request, *args, **kwargs):
         cliente = self.get_elasticsearch_client()
-        
+        paginador = self.pagination_class()
+
         resultado_busqueda = cliente.search(
             index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
             body=self.obtener_busqueda()
         )
 
 
+
         #TODO Serializar la respuesta de Elasticsearch
         resultados = [ {**item["_source"], "id" : item["_id"] } for item in resultado_busqueda['hits']['hits']]
-        return Response(resultados)
+        resutados_paginados = paginador.paginate_queryset(resultados, request)
+
+        return paginador.get_paginated_response(resutados_paginados)
     
     @swagger_auto_schema(
         operation_description="Inactiva un campo en la estructura de campos",
@@ -103,7 +115,6 @@ class DatosViewSet(ElasticsearchViewSet):
         
         if formato == "FORM":
             
-            datos_solicitud["origin"] = "FORM"
             respuesta =  self.cliente.index(
                 index = estructura.id.obtener_valor().lower(),
                 document= datos_solicitud
