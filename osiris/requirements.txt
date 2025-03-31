@@ -18,3 +18,4 @@ urllib3==2.3.0
 Pillow
 pandas
 django-cors-headers
+gunicorn
