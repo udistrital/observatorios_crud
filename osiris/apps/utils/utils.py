@@ -10,8 +10,8 @@ class ProcesadorRecursos():
     
     def procesar_csv(self, archivo) -> dict:
             
-            df = pd.read_csv(archivo)
-            data = df.to_dict(orient='records')
+            df = pd.read_csv(archivo, encoding='latin-1')
+            data = df.to_dict(orient='records' )
             self.ejecutar_validadores(df)
             
             return data
