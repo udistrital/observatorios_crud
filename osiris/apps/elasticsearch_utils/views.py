@@ -13,6 +13,7 @@ class ElasticsearchViewSet(viewsets.ViewSet):
 
     # Conectar a Elasticsearch
     def get_elasticsearch_client(self):
+        
         return Elasticsearch(ES_HOST)
 
     def obtener_busqueda(self, *args, **kwargs):
