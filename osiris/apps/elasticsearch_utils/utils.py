@@ -1,5 +1,6 @@
 from elasticsearch import Elasticsearch
 from django.conf import settings
+# from apps.utils.utils import BaseValidador
 
 def get_elasticsearch_client():
     return Elasticsearch(settings.ES_HOST)
@@ -81,4 +82,11 @@ def obtener_filtros_indice(nombre_indice, filtros, filtros_excepcion=None):
         filter(None, map(lambda item: generar_filtro(*item), filtros.items()))
     )
 
-    return final_filtros    
+    return final_filtros   
+
+
+# class ElasticMapeoValidador(BaseValidador):
+
+#     def handle(self, df):
+        
+#         return super().handle(df)
