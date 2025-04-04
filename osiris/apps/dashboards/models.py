@@ -6,6 +6,7 @@ from osiris.settings import ELASTICSEARCH_MAIN_INDEX
 class Dashboard(AuditoriaModelo):
     nombre = ElasticCampo(str)
     descripcion = ElasticCampo(str)
+    observatorio = ElasticCampo(str)
 
     indice =  "." + ELASTICSEARCH_MAIN_INDEX + "_dashboards"
 

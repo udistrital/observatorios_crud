@@ -1,9 +1,9 @@
-from django.shortcuts import render
 from apps.elasticsearch_utils.views import ElasticsearchViewSet
 from apps.elasticsearch_utils.utils import obtener_filtros_indice, convertir_django_ordering_a_elastic_ordering
 from rest_framework.response import Response
 from rest_framework import status
 from elasticsearch import helpers
+from .validadores import ValidadorColumnasNoExistentes
 
 import csv
 import json
@@ -11,8 +11,8 @@ import io
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from osiris.settings import ELASTICSEARCH_MAIN_INDEX
 from apps.utils.utils import ProcesadorRecursos
+from apps.elasticsearch_utils.validadores import ValidadorEstructuraColumnas
 
 from .serializers import DatosSerializers
 from apps.campos.models import EstructuraCamposModelo
@@ -21,13 +21,20 @@ from rest_framework.pagination import PageNumberPagination
 class CustomPagination(PageNumberPagination):
     page_size = 50  # Valor por defecto
     page_size_query_param = 'page_size'  # Permite cambiar el tamaño con `?page_size=10`
-    max_page_size = 500  # Límite máximo permitido
+    max_page_size = 10000  # Límite máximo permitido
 
 
 class DatosViewSet(ElasticsearchViewSet):
 
     procesador = ProcesadorRecursos()
     pagination_class = CustomPagination
+    
+    procesador.VALIDADORES.append(
+        ValidadorColumnasNoExistentes()   
+    )
+    procesador.VALIDADORES.append(
+        ValidadorEstructuraColumnas()
+    )
 
     #TODO: Manejar el size de manera dinamca
     def obtener_busqueda(self, *args, **kwargs):
@@ -92,7 +99,6 @@ class DatosViewSet(ElasticsearchViewSet):
         paginador = self.pagination_class()
         query_params = request.query_params
 
-        print(query_params)
 
         resultado_busqueda = cliente.search(
             index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
@@ -172,6 +178,12 @@ class DatosViewSet(ElasticsearchViewSet):
         estructura =  EstructuraCamposModelo().get(self.cliente,EstructuraCamposModelo.obtener_indice() , estructura_pk)
         indice_id_estructura = estructura.id.obtener_valor().lower()
 
+        #Parametrización de los validadores
+        self.procesador.inicializar_datos_validadores(
+            **{
+                "nombre_indice" : indice_id_estructura
+            }
+        )
 
 
         if formato == "CSV":
@@ -200,7 +212,11 @@ class DatosViewSet(ElasticsearchViewSet):
 
 
             csv_buffer = io.StringIO(archivo.read().decode('latin-1'))
-            datos_procesados = self.procesador.procesar_csv(csv_buffer)
+            datos_procesados, errors = self.procesador.procesar_csv(csv_buffer)
+            
+            if errors:
+                return Response({"error": errors}, status=400)
+
             resultados = helpers.bulk(self.cliente, estructura.generar_datos_masivos(datos_procesados, indice_id_estructura)) 
             resultados, errors = helpers.bulk(self.cliente, estructura.generar_datos_masivos(datos_procesados, indice_id_estructura))  
             
@@ -214,7 +230,13 @@ class DatosViewSet(ElasticsearchViewSet):
                 datos_procesados = json.loads(contenido)  # Cargar el JSON
                 if not isinstance(datos_procesados, list):  
                     return Response({"error": "El archivo JSON debe contener una lista de objetos"}, status=400)
+                
+                datos_procesados, errors = self.procesador.procesar_json(datos_procesados)
 
+                if errors:
+                    return Response({"error": errors}, status=400)
+
+                # Guardar los datos en Elasticsearch
                 resultados, errors = helpers.bulk(self.cliente, estructura.generar_datos_masivos(datos_procesados, indice_id_estructura))  
                 return Response({"message": f"Se guardaron un total de {resultados}", "errores": errors})
             
