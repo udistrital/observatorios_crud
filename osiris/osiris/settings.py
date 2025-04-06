@@ -45,8 +45,8 @@ INSTALLED_APPS = [
     "corsheaders",
     'apps.observatorios',
     'apps.datos',
-    'apps.campos'
-
+    'apps.campos',
+    'apps.graficos'
 ]
 
 
