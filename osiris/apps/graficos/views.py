@@ -130,7 +130,7 @@ class VistaObtenerConfiguracionGrafico(APIView):
 
     def get(self, request, *args, **kwargs):
 
-        metricas =  obtener_operaciones_metricas().get("operaciones", [])
+        metrica =  obtener_operaciones_metricas().get("operaciones", [])
         agrupaciones = obtener_operaciones_agrupacion().get("operaciones", [])
 
         tipo = request.query_params.get("tipo")
@@ -143,8 +143,8 @@ class VistaObtenerConfiguracionGrafico(APIView):
                 "datos_requeridos":
                 [
                     {
-                        "tipo" : "metricas",
-                        "valores" : metricas
+                        "tipo" : "metrica",
+                        "valores" : metrica
                     },
                     {
                         "tipo" : "etiquetas",
