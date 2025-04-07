@@ -204,7 +204,7 @@ class VistaProbarConfiguracionGrafico(APIView):
                     "aggs": {
                         "etiquetas": {
                             etiquetas_agg: {
-                                "field": etiquetas_campo ,
+                                "field": etiquetas_campo,
                             },
                             "aggs": {
                                 "metrica": {
