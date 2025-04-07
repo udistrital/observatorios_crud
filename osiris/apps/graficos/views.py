@@ -204,7 +204,7 @@ class VistaProbarConfiguracionGrafico(APIView):
                     "aggs": {
                         "etiquetas": {
                             etiquetas_agg: {
-                                "field": etiquetas_campo + ".keyword",
+                                "field": etiquetas_campo ,
                             },
                             "aggs": {
                                 "metrica": {
@@ -219,7 +219,7 @@ class VistaProbarConfiguracionGrafico(APIView):
             )
             
 
-
+            print (datos)
             if "aggregations" in datos:
                 datos_procesados = {
                     "data" : {
