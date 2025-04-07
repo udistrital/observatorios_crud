@@ -101,6 +101,7 @@ class VistaCamposSugeridos(APIView):
 
         fields = self.extract_fields(mapping, index_id)
         valid_types = self.AGGREGATION_TYPES[operacion]
+        print(fields)
 
         if operacion == "terms":
             result = [f for f, t in fields if t in valid_types or f.endswith(".keyword")]
@@ -111,14 +112,22 @@ class VistaCamposSugeridos(APIView):
     
 
     def extract_fields(self, mapping, index_id):
+         
+
         properties = mapping[index_id]["mappings"].get("properties", {})
         fields = []
 
         def recursive_extract(props, path=""):
+            #add .keyword to all fields type text
+
             for field, meta in props.items():
                 full_path = f"{path}.{field}" if path else field
                 if "type" in meta:
-                    fields.append((full_path, meta["type"]))
+                    if meta["type"] == "text":
+                        # Add the .keyword version of the text field
+                        fields.append((f"{full_path}.keyword", "keyword"))
+                    else:
+                        fields.append((full_path, meta["type"]))
                 elif "properties" in meta:
                     recursive_extract(meta["properties"], full_path)
 
@@ -195,7 +204,7 @@ class VistaProbarConfiguracionGrafico(APIView):
                     "aggs": {
                         "etiquetas": {
                             etiquetas_agg: {
-                                "field": etiquetas_campo
+                                "field": etiquetas_campo + ".keyword",
                             },
                             "aggs": {
                                 "metrica": {
