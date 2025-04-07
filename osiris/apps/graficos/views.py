@@ -7,7 +7,7 @@ from apps.elasticsearch_utils.utils import (
     obtener_operaciones_metricas,
     obtener_operaciones_agrupacion
 )
-
+import json
 
 
 
@@ -155,3 +155,82 @@ class VistaObtenerConfiguracionGrafico(APIView):
         
         return Response(configuracion)
 
+
+class VistaProbarConfiguracionGrafico(APIView):
+    def post(self, request, *args, **kwargs):
+        cliente = get_elasticsearch_client()
+        configuracion = request.data.get("configuracion")
+        indice = request.data.get("estructura")
+        
+        if not configuracion or not indice:
+            return Response({"error": "condifuracion y estructura son necesarios"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+
+        indice = indice.lower()
+        tipo = configuracion.get("tipo")
+        if tipo not in ["pie", "barras"]:
+            return Response({"error": "Tipo de gráfico no soportado."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        else:
+            metrica = configuracion.get("metrica")
+            etiquetas = configuracion.get("etiquetas")
+            
+            if not metrica or not etiquetas:
+                return Response({"error": "Métrica y etiquetas son necesarios."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            
+            metrica_agg = metrica.get("operacion")
+            metrica_campo = metrica.get("campo")
+
+            etiquetas_agg = etiquetas.get("operacion")
+            etiquetas_campo = etiquetas.get("campo")
+
+            datos = cliente.search(
+                index=indice,
+                body={
+                    "size": 0,
+                    "aggs": {
+                        "etiquetas": {
+                            etiquetas_agg: {
+                                "field": etiquetas_campo
+                            },
+                            "aggs": {
+                                "metrica": {
+                                    metrica_agg: {
+                                        "field": metrica_campo
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+            
+
+
+            if "aggregations" in datos:
+                datos_procesados = {
+                    "data" : {
+                        "metrica" : [],
+                        "etiquetas" : [],
+                        "etiquetas_as_string" : []
+                    },
+                    "grafico_metadata" : {
+                        "tipo" : tipo,
+                        "metrica" : metrica_agg,
+                        "etiquetas" : etiquetas_agg
+                    }
+                }
+                for etiqueta in datos["aggregations"]["etiquetas"]["buckets"]:
+                    datos_procesados["data"]["etiquetas"].append(etiqueta["key"])
+                    datos_procesados["data"]["etiquetas_as_string"].append(etiqueta.get("key_as_string"))
+                    datos_procesados["data"]["metrica"].append(etiqueta["metrica"]["value"])
+                    
+                return Response(datos_procesados)
+            else:
+                return Response({"error": "No se encontraron resultados."},
+                                status=status.HTTP_404_NOT_FOUND)
+            
+        return Response({"error": "Configuration tested successfully."})

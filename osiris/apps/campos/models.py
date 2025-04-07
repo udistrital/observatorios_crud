@@ -19,7 +19,7 @@ class EstructuraCamposModelo(AuditoriaModelo):
         mapeo = self.obtener_mapeo(mapeo)
         es.indices.create(
             index=registro.get("id").lower(),
-            body={"mappings": {"properties" : mapeo } },
+            body=mapeo,
         )
 
     def __str__(self):
