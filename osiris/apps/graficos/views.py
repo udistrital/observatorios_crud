@@ -92,6 +92,7 @@ class VistaCamposSugeridos(APIView):
             return Response({"detail": f"Invalid aggregation type. Supported: {list(self.AGGREGATION_TYPES.keys())}"},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        index_id = index_id.lower()
         try:
             mapping = es.indices.get_mapping(index=index_id)
         except Exception as e:
@@ -167,7 +168,7 @@ class VistaProbarConfiguracionGrafico(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
         
 
-        indice = indice.lower()
+        
         tipo = configuracion.get("tipo")
         if tipo not in ["pie", "barras"]:
             return Response({"error": "Tipo de gráfico no soportado."},
