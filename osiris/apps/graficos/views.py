@@ -205,6 +205,7 @@ class VistaProbarConfiguracionGrafico(APIView):
                         "etiquetas": {
                             etiquetas_agg: {
                                 "field": etiquetas_campo,
+                                "size" : 1000
                             },
                             "aggs": {
                                 "metrica": {
