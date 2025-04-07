@@ -168,7 +168,7 @@ class VistaProbarConfiguracionGrafico(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
         
 
-        
+        indice = indice.lower()
         tipo = configuracion.get("tipo")
         if tipo not in ["pie", "barras"]:
             return Response({"error": "Tipo de gráfico no soportado."},
