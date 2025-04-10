@@ -14,6 +14,8 @@ class GraficoSerializer(serializers.Serializer):
     nombre = serializers.CharField(max_length=255)
     descripcion = serializers.CharField()
     configuracion = serializers.DictField()
+    columna = serializers.IntegerField()
+    fila = serializers.IntegerField()
 
     #check if the configuracion is a valid json and not empty
     def validate_configuracion(self, value):

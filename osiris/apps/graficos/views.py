@@ -166,6 +166,79 @@ class VistaObtenerConfiguracionGrafico(APIView):
         return Response(configuracion)
 
 
+class VistaObtenerDatosGrafico(APIView):
+    def get(self, request, *args, **kwargs):
+        cliente = get_elasticsearch_client()
+        id_grafico = request.query_params.get("grafico")
+        id_dashboard = request.query_params.get("dashboard")
+
+        indice_name = f"{id_dashboard.lower()}_dashboard"
+
+        data_grafico = cliente.get(
+            index=indice_name,
+            id=id_grafico
+        )
+
+        configuracion = data_grafico["_source"].get("configuracion")
+
+        metrica = configuracion.get("metrica")
+        etiquetas = configuracion.get("etiquetas")
+        indice = data_grafico["_source"].get("estructura")
+        tipo = configuracion.get("tipo")
+        if not metrica or not etiquetas:
+            return Response({"error": "Métrica y etiquetas son necesarios."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        metrica_agg = metrica.get("operacion")
+        metrica_campo = metrica.get("campo")
+
+        etiquetas_agg = etiquetas.get("operacion")
+        etiquetas_campo = etiquetas.get("campo")
+        indice = data_grafico["_source"].get("estructura")
+
+        datos = cliente.search(
+            index=indice,
+            body={
+                "size": 0,
+                "aggs": {
+                    "etiquetas": {
+                        etiquetas_agg: {
+                            "field": etiquetas_campo,
+                            "size" : 1000
+                        },
+                        "aggs": {
+                            "metrica": {
+                                metrica_agg: {
+                                    "field": metrica_campo
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        
+
+        if "aggregations" in datos:
+            datos_procesados = {
+                "data" : {
+                    "metrica" : [],
+                    "etiquetas" : [],
+                    "etiquetas_as_string" : []
+                },
+                "grafico_metadata" : {
+                    "tipo" : tipo,
+                    "metrica" : metrica_agg,
+                    "etiquetas" : etiquetas_agg
+                }
+            }
+            for etiqueta in datos["aggregations"]["etiquetas"]["buckets"]:
+                datos_procesados["data"]["etiquetas"].append(etiqueta["key"])
+                datos_procesados["data"]["etiquetas_as_string"].append(etiqueta.get("key_as_string"))
+                datos_procesados["data"]["metrica"].append(etiqueta["metrica"]["value"])
+                
+            return Response(datos_procesados)
+
 class VistaProbarConfiguracionGrafico(APIView):
     def post(self, request, *args, **kwargs):
         cliente = get_elasticsearch_client()
@@ -220,7 +293,6 @@ class VistaProbarConfiguracionGrafico(APIView):
             )
             
 
-            print (datos)
             if "aggregations" in datos:
                 datos_procesados = {
                     "data" : {
