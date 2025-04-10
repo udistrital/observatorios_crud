@@ -17,6 +17,7 @@ class ElasticCampo:
         self.tipo_campo = tipo_campo
         self.validadores = validadores or []
         self.valor = None
+        self.valor_por_defecto = valor_por_defecto
         if valor_por_defecto:
             self.valor = valor_por_defecto
 
@@ -27,6 +28,9 @@ class ElasticCampo:
 
     def obtener_valor(self , **kwargs):
         """Retorna el valor del campo."""
+        if self.valor is None and self.valor_por_defecto:
+            return self.valor_por_defecto
+        
         return self.valor
 
     def _validar(self):
@@ -115,7 +119,10 @@ class ModeloElasticSearch:
                     kwargs[clave] = kwargs.get(clave).name
 
                 getattr(self, clave).establecer_valor(kwargs.get(clave))
-        
+
+            else:
+                getattr(self, clave).establecer_valor(None)
+
 
     def ejecutar_validadores(self):
         """Ejecuta los validadores sobre los campos del modelo."""

@@ -80,6 +80,7 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             
             if serializador.is_valid():
                 datos = serializador.data
+                print(datos)
                 valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
                 datos.update(valores_limpiados)
             else:

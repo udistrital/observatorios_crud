@@ -128,7 +128,6 @@ class GraficoViewSet(ElasticsearchViewSet):
     def list(self, request, *args, **kwargs):
         if hasattr(self, "errors"):
             return Response(self.errors, status=400)
-        
         return super().list(request, *args, **kwargs)
 
         

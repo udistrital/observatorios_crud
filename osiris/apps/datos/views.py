@@ -217,7 +217,6 @@ class DatosViewSet(ElasticsearchViewSet):
             if errors:
                 return Response({"error": errors}, status=400)
 
-            resultados = helpers.bulk(self.cliente, estructura.generar_datos_masivos(datos_procesados, indice_id_estructura)) 
             resultados, errors = helpers.bulk(self.cliente, estructura.generar_datos_masivos(datos_procesados, indice_id_estructura))  
             
             return Response({"message" : f"Se guardaron un total de {resultados}" , "errores" : errors})
