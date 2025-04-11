@@ -17,9 +17,26 @@ class EstructuraCamposModelo(AuditoriaModelo):
         mapeo =  registro["mapeo"]
 
         mapeo = self.obtener_mapeo(mapeo)
+        mapeo["mappings"]["dynamic_templates"] = [
+            {
+                "strings_as_keywords": {
+                    "match_mapping_type": "string",
+                    "mapping": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+
         es.indices.create(
             index=registro.get("id").lower(),
-            body={"mappings": {"properties" : mapeo } },
+            body=mapeo,
         )
 
     def __str__(self):
@@ -43,7 +60,7 @@ class EstructuraCamposModelo(AuditoriaModelo):
 
         for field in mapeo:
             es_mapping["mappings"]["properties"][field["nombre"]] = {
-                "type": field["tipo"]
+                "type": field["tipo"] if field["tipo"] != "text" else "keyword",
             }
 
         return es_mapping

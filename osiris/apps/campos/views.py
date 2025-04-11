@@ -17,7 +17,7 @@ from apps.utils.utils import ProcesadorRecursos
 ### Modulos Internos ###
 from .utils import ELASTICSEARCH_CAMPOS
 from .models import EstructuraCamposModelo
-from .serializers import EstructuraSerializer
+from .serializers import EstructuraSerializer, EstructuraUpdateSerializer
 
 class EstructuraCamposViewSet(ElasticsearchViewSet): 
     elastic_model = EstructuraCamposModelo
@@ -25,6 +25,12 @@ class EstructuraCamposViewSet(ElasticsearchViewSet):
     cliente =  get_elasticsearch_client()
 
     clase_serializador = EstructuraSerializer
+
+    def obtener_clase_serializador(self):
+        if self.action == "update":
+            return EstructuraUpdateSerializer
+        
+        return super().obtener_clase_serializador()
 
     def obtener_busqueda(self, *args, **kwargs):
         busqueda =  {

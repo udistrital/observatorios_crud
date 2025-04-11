@@ -39,6 +39,9 @@ urlpatterns = [
     ### Dashboards ###
     path("api/<str:version>/", include("apps.dashboards.urls")),
 
+    ### Graficos ###
+    path("api/<str:version>/constructor_graficos/", include("apps.graficos.urls")),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

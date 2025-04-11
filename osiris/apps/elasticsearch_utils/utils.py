@@ -84,9 +84,36 @@ def obtener_filtros_indice(nombre_indice, filtros, filtros_excepcion=None):
 
     return final_filtros   
 
+def obtener_operaciones_metricas():
+    METRIC_AGGREGATIONS = [
+        {"id": "avg", "nombre": "Average", "nombre_espanol": "Promedio"},
+        {"id": "sum", "nombre": "Sum", "nombre_espanol": "Suma"},
+        {"id": "min", "nombre": "Minimum", "nombre_espanol": "Mínimo"},
+        {"id": "max", "nombre": "Maximum", "nombre_espanol": "Máximo"},
+        {"id": "stats", "nombre": "Stats", "nombre_espanol": "Estadísticas"},
+        {"id": "extended_stats", "nombre": "Extended Stats", "nombre_espanol": "Estadísticas Extendidas"},
+        {"id": "value_count", "nombre": "Value Count", "nombre_espanol": "Conteo de Valores"},
+        {"id": "cardinality", "nombre": "Cardinality", "nombre_espanol": "Cardinalidad"},
+        {"id": "percentiles", "nombre": "Percentiles", "nombre_espanol": "Percentiles"},
+        {"id": "percentile_ranks", "nombre": "Percentile Ranks", "nombre_espanol": "Rangos Percentiles"},
+        {"id": "matrix_stats", "nombre": "Matrix Stats", "nombre_espanol": "Estadísticas de Matriz"},
+        {"id": "geo_bounds", "nombre": "Geo Bounds", "nombre_espanol": "Límites Geográficos"},
+        {"id": "geo_centroid", "nombre": "Geo Centroid", "nombre_espanol": "Centro Geográfico"},
+    ]
 
-# class ElasticMapeoValidador(BaseValidador):
+    return {"operaciones": METRIC_AGGREGATIONS}
 
-#     def handle(self, df):
-        
-#         return super().handle(df)
+def obtener_operaciones_agrupacion():
+    BUCKET_AGGREGATIONS = [
+        {"id": "terms", "nombre": "Terms", "nombre_espanol": "Términos"},
+        {"id": "histogram", "nombre": "Histogram", "nombre_espanol": "Histograma"},
+        {"id": "range", "nombre": "Range", "nombre_espanol": "Rango"},
+        {"id": "date_range", "nombre": "Date Range", "nombre_espanol": "Rango de Fechas"},
+        {"id": "ip_range", "nombre": "IP Range", "nombre_espanol": "Rango IP"},
+        {"id": "date_histogram", "nombre": "Date Histogram", "nombre_espanol": "Histograma de Fecha"},
+        {"id": "geohash_grid", "nombre": "Geohash Grid", "nombre_espanol": "Cuadrícula Geohash"},
+        {"id": "geo_tile_grid", "nombre": "Geo Tile Grid", "nombre_espanol": "Cuadrícula de Teselas Geográficas"},
+        {"id": "geohex_grid", "nombre": "Geohex Grid", "nombre_espanol": "Cuadrícula Geohex"},
+    ]
+
+    return {"operaciones": BUCKET_AGGREGATIONS}
