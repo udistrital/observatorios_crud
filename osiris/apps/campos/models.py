@@ -1,6 +1,8 @@
 from django.db import models
 from apps.elasticsearch_utils.models import AuditoriaModelo, ElasticCampo
 # Create your models here.
+import uuid
+from asgiref.sync import async_to_sync
 
 
 
@@ -34,10 +36,23 @@ class EstructuraCamposModelo(AuditoriaModelo):
             }
         ]
 
-        es.indices.create(
-            index=registro.get("id").lower(),
-            body=mapeo,
-        )
+        id_unico = uuid.uuid5(uuid.NAMESPACE_DNS, str(registro.get("id")))
+
+        try:
+            es.indices.create(
+                index=id_unico,
+                body=mapeo,
+            )
+        except Exception as error:
+            es.delete(index=nombre_indice, id=registro.get("id"))
+            raise error
+        
+        return registro
+    
+    @property
+    def indice_id(self):
+        id_unico = uuid.uuid5(uuid.NAMESPACE_DNS, str(self.id.obtener_valor()))
+        return str(id_unico)
 
     def __str__(self):
         return f"{self.nombre.obtener_valor()} - {self.id}"
@@ -64,3 +79,66 @@ class EstructuraCamposModelo(AuditoriaModelo):
             }
 
         return es_mapping
+    
+    def obtener_campos_viejos(self, mapeo):
+
+        campos_nuevos = []
+        for campo in mapeo:
+            if campo.get("valor_anterior") and campo.get("valor_anterior") != campo.get("nombre"):
+                campos_nuevos.append(
+                    {
+                        "viejo" : campo.get("valor_anterior"),
+                        "nuevo" : campo.get("nombre"), 
+                    }
+                    )
+                
+        return campos_nuevos
+
+
+    def actualizar_mapeo(self, cliente, indice, body= {}):
+        respuesta = cliente.update_by_query(
+            index =  indice,
+            body =  body,
+            timeout = "10m",
+        )
+
+        print (respuesta)
+
+
+    def actualizar(self, cliente, indice, item_id=None, datos=...):
+
+        mapeo =  datos.get("mapeo")
+
+        if mapeo:  
+            campos_nuevos = self.obtener_campos_viejos(mapeo)
+
+            painless_script = ""
+            for campo in campos_nuevos:
+                old = campo["viejo"]
+                new = campo["nuevo"]
+                painless_script += f"""
+                if (ctx._source.containsKey('{old}')) {{
+                ctx._source['{new}'] = ctx._source.remove('{old}');
+                }}
+                """
+            
+            estructura = self.get(cliente, item_id=item_id)
+
+            index_id = estructura.indice_id
+
+            if len(painless_script)>0:
+
+                body = {
+                        "script": {
+                            "lang": "painless",
+                            "source": painless_script,
+                        },
+                        "query": {
+                            "match_all": {}
+                        }
+                }
+                
+                self.actualizar_mapeo(cliente, index_id, body)
+
+        resultados_updates =  super().actualizar(cliente, indice, item_id, datos)
+        return resultados_updates

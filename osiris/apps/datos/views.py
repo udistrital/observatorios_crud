@@ -1,5 +1,5 @@
 from apps.elasticsearch_utils.views import ElasticsearchViewSet
-from apps.elasticsearch_utils.utils import obtener_filtros_indice, convertir_django_ordering_a_elastic_ordering
+from apps.elasticsearch_utils.utils import obtener_filtros_indice, convertir_django_ordering_a_elastic_ordering, get_elasticsearch_client
 from rest_framework.response import Response
 from rest_framework import status
 from elasticsearch import helpers
@@ -85,7 +85,9 @@ class DatosViewSet(ElasticsearchViewSet):
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        self._nombre_indice = kwargs.get("estructura_id").lower()
+        cliente = get_elasticsearch_client()
+        esturctura = EstructuraCamposModelo().get(cliente, EstructuraCamposModelo.obtener_indice(),item_id=kwargs.get("estructura_id")) 
+        self._nombre_indice = esturctura.indice_id
 
     @swagger_auto_schema(
         operation_description="Lista los datos de una estructura de datos",
@@ -176,7 +178,7 @@ class DatosViewSet(ElasticsearchViewSet):
         formato =   datos_solicitud.get("formato", "FORM")
         estructura_pk =  kwargs.get("estructura_id")
         estructura =  EstructuraCamposModelo().get(self.cliente,EstructuraCamposModelo.obtener_indice() , estructura_pk)
-        indice_id_estructura = estructura.id.obtener_valor().lower()
+        indice_id_estructura = estructura.indice_id
 
         #Parametrización de los validadores
         self.procesador.inicializar_datos_validadores(
@@ -191,23 +193,20 @@ class DatosViewSet(ElasticsearchViewSet):
             archivo = request.FILES['archivo']
 
             # Verificar el separador
-            archivo.seek(0)  # Reiniciar el puntero del archivo
-            sniffer = csv.Sniffer()
-            primera_linea = archivo.readline().decode('latin-1')
+            # archivo.seek(0)  # Reiniciar el puntero del archivo
+            # sniffer = csv.Sniffer()
+            # primera_linea = archivo.readline().decode('latin-1')
 
-            if not sniffer.has_header(primera_linea):
-                return Response({"message": "El archivo CSV no tiene un encabezado válido"}, status=status.HTTP_400_BAD_REQUEST)
+            # if not sniffer.has_header(primera_linea):
+            #     return Response({"message": "El archivo CSV no tiene un encabezado válido"}, status=status.HTTP_400_BAD_REQUEST)
 
-            delimitador_detectado = sniffer.sniff(primera_linea).delimiter
-            if delimitador_detectado != ',':
-                return Response({"message": f"El archivo CSV tiene un separador inválido: '{delimitador_detectado}'. Se espera ','"},
-                                status=status.HTTP_400_BAD_REQUEST)
+            # delimitador_detectado = sniffer.sniff(primera_linea).delimiter
+            # if delimitador_detectado != ',':
+            #     return Response({"message": f"El archivo CSV tiene un separador inválido: '{delimitador_detectado}'. Se espera ','"},
+            #                     status=status.HTTP_400_BAD_REQUEST)
             
 
-            archivo.seek(0)  # Reiniciar el puntero después de la detección
-
-
-
+            # archivo.seek(0)  # Reiniciar el puntero después de la detección
 
 
 
@@ -245,7 +244,7 @@ class DatosViewSet(ElasticsearchViewSet):
         if formato == "FORM":
             
             respuesta =  self.cliente.index(
-                index = estructura.id.obtener_valor().lower(),
+                index = indice_id_estructura,
                 document= datos_solicitud
             )            
             return Response(respuesta)

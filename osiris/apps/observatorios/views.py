@@ -6,6 +6,7 @@ from .models import ObservatorioModelo
 from osiris.settings import ELASTICSEARCH_MAIN_INDEX
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.response import Response
 
 class ObservatorioViewSet(ElasticsearchViewSet):
     
@@ -48,7 +49,11 @@ class ObservatorioViewSet(ElasticsearchViewSet):
         tags=["Observatorios"]
     )
     def retrieve(self, request, pk=None, *args, **kwargs):
-        return super().retrieve(request, pk, *args, **kwargs)
+        cliente = self.get_elasticsearch_client()
+        observarotio = self.elastic_model().get(cliente, self._nombre_indice, item_id=pk)
+        if not observarotio:
+            return Response({"error": "No se encontró el observatorio"}, status=404)
+        return Response({ **observarotio.obtener_documento(imagen_en_base64=True), "id": pk })
     
     @swagger_auto_schema(
         operation_description="Obtiene un observatorio en especifico",
@@ -59,7 +64,21 @@ class ObservatorioViewSet(ElasticsearchViewSet):
         tags=["Observatorios"]
     )
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        cliente = self.get_elasticsearch_client()
+        
+        resultado_busqueda = cliente.search(
+            index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
+            body=self.obtener_busqueda()
+        )
+
+
+        #TODO Serializar la respuesta de Elasticsearch
+        resultados = [ 
+            self.elastic_model(**{**item["_source"], "id": item["_source"].get("observatorio_id")}).obtener_documento( imagen_en_base64 = True )      
+            for item in resultado_busqueda['hits']['hits']
+        ]
+        
+        return Response(resultados)
     
     @swagger_auto_schema(
         operation_description="Inactiva un observatorio",
