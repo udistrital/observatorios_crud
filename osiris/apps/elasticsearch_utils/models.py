@@ -17,6 +17,7 @@ class ElasticCampo:
         self.tipo_campo = tipo_campo
         self.validadores = validadores or []
         self.valor = None
+        self.valor_por_defecto = valor_por_defecto
         if valor_por_defecto:
             self.valor = valor_por_defecto
 
@@ -27,6 +28,9 @@ class ElasticCampo:
 
     def obtener_valor(self , **kwargs):
         """Retorna el valor del campo."""
+        if self.valor is None and self.valor_por_defecto:
+            return self.valor_por_defecto
+        
         return self.valor
 
     def _validar(self):
@@ -115,7 +119,10 @@ class ModeloElasticSearch:
                     kwargs[clave] = kwargs.get(clave).name
 
                 getattr(self, clave).establecer_valor(kwargs.get(clave))
-        
+
+            else:
+                getattr(self, clave).establecer_valor(None)
+
 
     def ejecutar_validadores(self):
         """Ejecuta los validadores sobre los campos del modelo."""
@@ -206,6 +213,44 @@ class ModeloElasticSearch:
 
                 getattr(self, clave).establecer_valor(kwargs.get(clave))
 
+
+    def actualizar(self, cliente, indice, item_id=None , datos = {}):
+        """
+        Actualiza un ítem en Elasticsearch.
+        
+        :param es: Cliente de Elasticsearch.
+        :param indice: Nombre del índice.
+        :param item_id: ID del documento a actualizar.
+        :return: Resultado de la operación.
+        """
+        objeto = self.get(cliente, item_id = item_id)
+        
+        objeto.set(**datos)
+        respuesta = cliente.update(
+            index=indice,  # El índice de Elasticsearch
+            id=objeto.id.obtener_valor(),
+            body={"doc": objeto.obtener_documento()}
+        )
+
+        objeto.guardar_campos_archivos(cliente, indice)
+
+        return respuesta
+
+
+    def eliminar(self, cliente, indice, item_id=None):
+        """
+        Elimina un ítem de Elasticsearch.
+        
+        :param es: Cliente de Elasticsearch.
+        :param indice: Nombre del índice.
+        :param item_id: ID del documento a eliminar.
+        :return: Resultado de la operación.
+        """
+        return cliente.update(
+            index=indice,  # El índice de Elasticsearch
+            id=item_id,
+            body={"doc": {"activo": False}}
+        )
 
     @staticmethod
     def generar_datos_masivos(data, index_name):

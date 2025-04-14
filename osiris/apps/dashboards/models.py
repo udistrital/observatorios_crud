@@ -22,3 +22,6 @@ class Dashboard(AuditoriaModelo):
 class Grafico(AuditoriaModelo):
     nombre = ElasticCampo(str)
     descripcion = ElasticCampo(str)
+    configuracion = ElasticCampo(dict)
+    columna = ElasticCampo(int)
+    fila = ElasticCampo(int)

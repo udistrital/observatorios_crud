@@ -17,7 +17,7 @@ from apps.utils.utils import ProcesadorRecursos
 ### Modulos Internos ###
 from .utils import ELASTICSEARCH_CAMPOS
 from .models import EstructuraCamposModelo
-from .serializers import EstructuraSerializer
+from .serializers import EstructuraSerializer, EstructuraUpdateSerializer
 
 class EstructuraCamposViewSet(ElasticsearchViewSet): 
     elastic_model = EstructuraCamposModelo
@@ -25,6 +25,12 @@ class EstructuraCamposViewSet(ElasticsearchViewSet):
     cliente =  get_elasticsearch_client()
 
     clase_serializador = EstructuraSerializer
+
+    def obtener_clase_serializador(self):
+        if self.action == "update":
+            return EstructuraUpdateSerializer
+        
+        return super().obtener_clase_serializador()
 
     def obtener_busqueda(self, *args, **kwargs):
         busqueda =  {
@@ -95,6 +101,10 @@ class EstructuraCamposViewSet(ElasticsearchViewSet):
             index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
             body=self.obtener_busqueda( observatorio =  observatorio)
         )
+
+        for item in resultado_busqueda["hits"]["hits"]:
+            for campo in item["_source"]["mapeo"]:
+                campo.update({"valor_anterior": campo.get("nombre")})
 
         resultados = [ 
             self.elastic_model(**{**item["_source"], "id": item["_id"]}).obtener_documento( imagen_en_base64 = True )      
