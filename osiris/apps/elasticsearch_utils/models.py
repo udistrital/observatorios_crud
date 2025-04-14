@@ -214,6 +214,44 @@ class ModeloElasticSearch:
                 getattr(self, clave).establecer_valor(kwargs.get(clave))
 
 
+    def actualizar(self, cliente, indice, item_id=None , datos = {}):
+        """
+        Actualiza un ítem en Elasticsearch.
+        
+        :param es: Cliente de Elasticsearch.
+        :param indice: Nombre del índice.
+        :param item_id: ID del documento a actualizar.
+        :return: Resultado de la operación.
+        """
+        objeto = self.get(cliente, item_id = item_id)
+        
+        objeto.set(**datos)
+        respuesta = cliente.update(
+            index=indice,  # El índice de Elasticsearch
+            id=objeto.id.obtener_valor(),
+            body={"doc": objeto.obtener_documento()}
+        )
+
+        objeto.guardar_campos_archivos(cliente, indice)
+
+        return respuesta
+
+
+    def eliminar(self, cliente, indice, item_id=None):
+        """
+        Elimina un ítem de Elasticsearch.
+        
+        :param es: Cliente de Elasticsearch.
+        :param indice: Nombre del índice.
+        :param item_id: ID del documento a eliminar.
+        :return: Resultado de la operación.
+        """
+        return cliente.update(
+            index=indice,  # El índice de Elasticsearch
+            id=item_id,
+            body={"doc": {"activo": False}}
+        )
+
     @staticmethod
     def generar_datos_masivos(data, index_name):
         for record in data:

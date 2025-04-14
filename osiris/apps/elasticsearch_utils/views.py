@@ -107,25 +107,21 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
             datos.update(valores_limpiados)        
 
-        objeto = self.elastic_model().get(cliente, item_id = pk)
-        objeto.set(**datos)
-        respuesta = cliente.update(
-            index=self._nombre_indice,  # El índice de Elasticsearch
-            id=pk,
-            body={"doc": objeto.obtener_documento()}
-        )
+        respuesta = self.elastic_model().actualizar(cliente, self._nombre_indice, item_id = pk, datos = datos)
+        # objeto = self.elastic_model().get(cliente, item_id = pk)
+        # objeto.set(**datos)
+        # respuesta = cliente.update(
+        #     index=self._nombre_indice,  # El índice de Elasticsearch
+        #     id=pk,
+        #     body={"doc": objeto.obtener_documento()}
+        # )
 
-        objeto.guardar_campos_archivos(cliente, self._nombre_indice)
+        # objeto.guardar_campos_archivos(cliente, self._nombre_indice)
         return Response(respuesta)
 
     # Método para eliminar un documento de Elasticsearch
     def destroy(self, request, pk=None, *args, **kwargs):
         cliente = self.get_elasticsearch_client()
         
-        #TODO lógica de borrado de ítem
-        respuesta = cliente.update(
-            index=self._nombre_indice,  # El índice de Elasticsearch
-            id=pk,
-            body={"doc": {"activo": False}}
-        )
+        self.elastic_model().eliminar(cliente, self._nombre_indice, item_id = pk)
         return Response(status=status.HTTP_204_NO_CONTENT)
