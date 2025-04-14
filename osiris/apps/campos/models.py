@@ -95,10 +95,11 @@ class EstructuraCamposModelo(AuditoriaModelo):
         return campos_nuevos
 
 
-    async def actualizar_mapeo(self, cliente, indice, body= {}):
+    def actualizar_mapeo(self, cliente, indice, body= {}):
         respuesta = cliente.update_by_query(
             index =  indice,
-            body =  body
+            body =  body,
+            timeout = "10m",
         )
 
         print (respuesta)
@@ -108,33 +109,36 @@ class EstructuraCamposModelo(AuditoriaModelo):
 
         mapeo =  datos.get("mapeo")
 
-        campos_nuevos = self.obtener_campos_viejos(mapeo)
+        if mapeo:  
+            campos_nuevos = self.obtener_campos_viejos(mapeo)
 
-        painless_script = ""
-        for campo in campos_nuevos:
-            old = campo["viejo"]
-            new = campo["nuevo"]
-            painless_script += f"""
-            if (ctx._source.containsKey('{old}')) {{
-            ctx._source['{new}'] = ctx._source.remove('{old}');
-            }}
-            """
-        
-        estructura = self.get(cliente, item_id=item_id)
+            painless_script = ""
+            for campo in campos_nuevos:
+                old = campo["viejo"]
+                new = campo["nuevo"]
+                painless_script += f"""
+                if (ctx._source.containsKey('{old}')) {{
+                ctx._source['{new}'] = ctx._source.remove('{old}');
+                }}
+                """
+            
+            estructura = self.get(cliente, item_id=item_id)
 
-        index_id = estructura.indice_id
+            index_id = estructura.indice_id
 
-        body = {
-                "script": {
-                    "lang": "painless",
-                    "source": painless_script,
-                },
-                "query": {
-                    "match_all": {}
+            if len(painless_script)>0:
+
+                body = {
+                        "script": {
+                            "lang": "painless",
+                            "source": painless_script,
+                        },
+                        "query": {
+                            "match_all": {}
+                        }
                 }
-        }
-        
-        async_to_sync(self.actualizar_mapeo)(cliente, index_id, body)
+                
+                self.actualizar_mapeo(cliente, index_id, body)
 
         resultados_updates =  super().actualizar(cliente, indice, item_id, datos)
         return resultados_updates
