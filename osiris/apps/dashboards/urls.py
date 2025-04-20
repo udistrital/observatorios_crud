@@ -11,5 +11,7 @@ urlpatterns = [
     path('graficos/<str:dashboard_id>/', GraficoViewSet.as_view({'get': 'list', 'post': 'create'})),
 
     path('graficos/<str:dashboard_id>/<str:pk>/', GraficoViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
+    
+    path('graficos/<str:dashboard_id>/<str:pk>/construir/', GraficoViewSet.as_view({'get': 'construir'})),
 
 ] + router.urls

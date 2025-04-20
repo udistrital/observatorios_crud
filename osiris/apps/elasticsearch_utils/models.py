@@ -195,7 +195,7 @@ class ModeloElasticSearch:
         :param item_id: ID del documento a recuperar.
         :return: Instancia del modelo 
         """
-        nombre_indice = self.indice
+        print(item_id)
         respuesta = es.get(index=nombre_indice, id=item_id)
 
         if respuesta["found"]:
