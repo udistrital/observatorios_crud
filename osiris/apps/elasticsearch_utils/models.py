@@ -195,7 +195,6 @@ class ModeloElasticSearch:
         :param item_id: ID del documento a recuperar.
         :return: Instancia del modelo 
         """
-        print(item_id)
         respuesta = es.get(index=nombre_indice, id=item_id)
 
         if respuesta["found"]:
@@ -223,7 +222,7 @@ class ModeloElasticSearch:
         :param item_id: ID del documento a actualizar.
         :return: Resultado de la operación.
         """
-        objeto = self.get(cliente, item_id = item_id)
+        objeto = self.get(cliente, nombre_indice=indice, item_id = item_id)
         
         objeto.set(**datos)
         respuesta = cliente.update(

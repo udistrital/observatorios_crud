@@ -5,6 +5,15 @@ from django.conf import settings
 def get_elasticsearch_client():
     return Elasticsearch(settings.ES_HOST)
 
+def string_to_case_insensitive_regex(text):
+    regex = ".*"
+    for char in text:
+        if char.isalpha():
+            regex += f"[{char.lower()}{char.upper()}]"
+        else:
+            regex += char
+    regex += ".*"
+    return regex
 
 def convertir_django_ordering_a_elastic_ordering(indice: str, ordering: str):
     """
@@ -63,11 +72,11 @@ def obtener_filtros_indice(nombre_indice, filtros, filtros_excepcion=None):
         tipo_campo = propiedades.get(item, {}).get("type")
 
         filtro_map = {
-            "text": lambda: {"wildcard": {item: valor}} if "*" in valor else {"match": {item: valor}},
+            "text": lambda: {"regexp": {item: string_to_case_insensitive_regex(valor)}},
             "integer": lambda: {"term": {item: valor}},
-            "boolean": lambda: {"term": {item: valor}},
+            "boolean": lambda: {"term": {item: valor in ["true", True, 1, "1"]}},	
             "date": lambda: {"range": {item: {"gte": valor}}},
-            "keyword": lambda: {"term": {item: valor}},
+            "keyword": lambda: {"regexp": {item: string_to_case_insensitive_regex(valor)}},
             "float": lambda: {"term": {item: valor}},
             "long": lambda: {"term": {item: valor}},
             "short": lambda: {"term": {item: valor}},
