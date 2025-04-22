@@ -1,21 +1,24 @@
 from rest_framework import serializers
+from apps.elasticsearch_utils.serializers import BaseSerializerAuditoria
 
-class DashboardSerializer(serializers.Serializer):
+class DashboardSerializer(BaseSerializerAuditoria):
+    activo = serializers.BooleanField(default=True)
     nombre = serializers.CharField(max_length=255)
     descripcion = serializers.CharField()
     observatorio = serializers.CharField()
 
-class DashboardUpdateSerializer(serializers.Serializer):
+class DashboardUpdateSerializer(BaseSerializerAuditoria):
     nombre = serializers.CharField(required= False ,max_length=255)
     descripcion = serializers.CharField(required= False)
 
 
-class GraficoSerializer(serializers.Serializer):
+class GraficoSerializer(BaseSerializerAuditoria):
     nombre = serializers.CharField(max_length=255)
     descripcion = serializers.CharField()
     configuracion = serializers.DictField()
     columna = serializers.IntegerField()
     fila = serializers.IntegerField()
+    estructura = serializers.CharField()
 
     #check if the configuracion is a valid json and not empty
     def validate_configuracion(self, value):
@@ -23,7 +26,10 @@ class GraficoSerializer(serializers.Serializer):
             raise serializers.ValidationError("La configuración debe ser un diccionario no vacío.")
         return value
 
-class GraficoUpdateSerializer(serializers.Serializer):
+class GraficoUpdateSerializer(BaseSerializerAuditoria):
     nombre = serializers.CharField(required= False ,max_length=255)
     descripcion = serializers.CharField(required= False)
     configuracion = serializers.DictField(required= False)
+    columna = serializers.IntegerField(required= False)
+    fila = serializers.IntegerField(required= False)
+    estructura = serializers.CharField(required= False)

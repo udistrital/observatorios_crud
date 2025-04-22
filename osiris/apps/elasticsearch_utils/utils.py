@@ -5,6 +5,15 @@ from django.conf import settings
 def get_elasticsearch_client():
     return Elasticsearch(settings.ES_HOST)
 
+def string_to_case_insensitive_regex(text):
+    regex = ".*"
+    for char in text:
+        if char.isalpha():
+            regex += f"[{char.lower()}{char.upper()}]"
+        else:
+            regex += char
+    regex += ".*"
+    return regex
 
 def convertir_django_ordering_a_elastic_ordering(indice: str, ordering: str):
     """
@@ -63,11 +72,11 @@ def obtener_filtros_indice(nombre_indice, filtros, filtros_excepcion=None):
         tipo_campo = propiedades.get(item, {}).get("type")
 
         filtro_map = {
-            "text": lambda: {"wildcard": {item: valor}} if "*" in valor else {"match": {item: valor}},
+            "text": lambda: {"regexp": {item: string_to_case_insensitive_regex(valor)}},
             "integer": lambda: {"term": {item: valor}},
-            "boolean": lambda: {"term": {item: valor}},
+            "boolean": lambda: {"term": {item: valor in ["true", True, 1, "1"]}},	
             "date": lambda: {"range": {item: {"gte": valor}}},
-            "keyword": lambda: {"term": {item: valor}},
+            "keyword": lambda: {"regexp": {item: string_to_case_insensitive_regex(valor)}},
             "float": lambda: {"term": {item: valor}},
             "long": lambda: {"term": {item: valor}},
             "short": lambda: {"term": {item: valor}},
@@ -83,6 +92,12 @@ def obtener_filtros_indice(nombre_indice, filtros, filtros_excepcion=None):
     )
 
     return final_filtros   
+
+
+
+
+#TODO: Pasar todos estos datos a la base de datos e indexación en archivo de configuración
+
 
 def obtener_operaciones_metricas():
     METRIC_AGGREGATIONS = [
@@ -117,3 +132,145 @@ def obtener_operaciones_agrupacion():
     ]
 
     return {"operaciones": BUCKET_AGGREGATIONS}
+
+
+
+
+def obtener_campos_operacion(operacion : str):
+    campos_operaciones = {
+    "terms": {
+        "obligatorios": [],
+        "opcionales": [
+            { "valor": "size", "valor_por_defecto": 10, "tipo": "number", "valor_espanol": "Tamaño" },
+            # { "valor": "order", "valor_por_defecto":  "desc",  "tipo": "text", "valor_espanol": "Orden" },
+            # { "valor": "missing", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "Valor faltante" },
+            # { "valor": "shard_size", "valor_por_defecto": "auto", "tipo": "text", "valor_espanol": "Tamaño de shard" }
+        ]
+    },
+    "histogram": {
+        "obligatorios": [
+            { "valor": "interval", "valor_por_defecto": None, "valor_espanol": "Intervalo", "tipo": "number" }
+        ],
+        "opcionales": [
+            { "valor": "min_doc_count", "valor_por_defecto": 1, "tipo": "number", "valor_espanol": "Mínimo de documentos" },
+            { "valor": "offset", "valor_por_defecto": 0, "tipo": "number", "valor_espanol": "Offset" },
+            # { "valor": "extended_bounds", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "Límites extendidos" },
+            { "valor": "keyed", "valor_por_defecto": False, "tipo": "checkbox", "valor_espanol": "Indexado por clave" }
+        ]
+    },
+    "date_histogram": {
+        "obligatorios": [
+            { "valor": "calendar_interval", "valor_por_defecto": None, "valor_espanol": "Intervalo de calendario", "tipo": "text" }
+        ],
+        "opcionales": [
+            { "valor": "format", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "Formato" },
+            { "valor": "time_zone", "valor_por_defecto": "UTC", "tipo": "text", "valor_espanol": "Zona horaria" },
+            { "valor": "offset", "valor_por_defecto": "0", "tipo": "text", "valor_espanol": "Offset" },
+            { "valor": "min_doc_count", "valor_por_defecto": 1, "tipo": "number", "valor_espanol": "Mínimo de documentos" },
+            { "valor": "extended_bounds", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "Límites extendidos" },
+            { "valor": "keyed", "valor_por_defecto": False, "tipo": "checkbox", "valor_espanol": "Indexado por clave" }
+        ]
+    },
+    "range": {
+        "obligatorios": [
+            { "valor": "ranges", "valor_por_defecto": None, "valor_espanol": "Rangos", "tipo": "list" }
+        ],
+        "opcionales": [
+            { "valor": "keyed", "valor_por_defecto": False, "tipo": "checkbox", "valor_espanol": "Indexado por clave" }
+        ]
+    },
+    "date_range": {
+        "obligatorios": [
+            { "valor": "ranges", "valor_por_defecto": None, "valor_espanol": "Rangos", "tipo": "list" }
+        ],
+        "opcionales": [
+            { "valor": "format", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "Formato" },
+            { "valor": "time_zone", "valor_por_defecto": "UTC", "tipo": "text", "valor_espanol": "Zona horaria" },
+            { "valor": "keyed", "valor_por_defecto": False, "tipo": "checkbox", "valor_espanol": "Indexado por clave" }
+        ]
+    },
+    "stats": {
+        "obligatorios": [],
+        "opcionales": []
+    },
+    "extended_stats": {
+        "obligatorios": [],
+        "opcionales": []
+    },
+    "percentiles": {
+        "obligatorios": [],
+        "opcionales": [
+            { "valor": "percents", "valor_por_defecto": [1, 5, 25, 50, 75, 95, 99], "tipo": "list", "valor_espanol": "Percentiles" },
+            { "valor": "keyed", "valor_por_defecto": True, "tipo": "checkbox", "valor_espanol": "Indexado por clave" },
+            { "valor": "hdr", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "HDR" },
+            { "valor": "tdigest", "valor_por_defecto": { "compression": 100 }, "tipo": "object", "valor_espanol": "TDigest" }
+        ]
+    },
+    "percentile_ranks": {
+        "obligatorios": [
+            { "valor": "values", "valor_por_defecto": None, "valor_espanol": "Valores", "tipo": "list" }
+        ],
+        "opcionales": [
+            { "valor": "keyed", "valor_por_defecto": True, "tipo": "checkbox", "valor_espanol": "Indexado por clave" },
+            { "valor": "hdr", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "HDR" },
+            { "valor": "tdigest", "valor_por_defecto": { "compression": 100 }, "tipo": "object", "valor_espanol": "TDigest" }
+        ]
+    },
+    "cardinality": {
+        "obligatorios": [],
+        "opcionales": [
+            { "valor": "precision_threshold", "valor_por_defecto": 3000, "tipo": "number", "valor_espanol": "Precisión" },
+            { "valor": "rehash", "valor_por_defecto": True, "tipo": "checkbox", "valor_espanol": "Rehash" }
+        ]
+    },
+    "top_hits": {
+        "obligatorios": [],
+        "opcionales": [
+            { "valor": "size", "valor_por_defecto": 3, "tipo": "number", "valor_espanol": "Tamaño" },
+            { "valor": "from", "valor_por_defecto": 0, "tipo": "number", "valor_espanol": "Desde" },
+            { "valor": "sort", "valor_por_defecto": ["_score"], "tipo": "list", "valor_espanol": "Ordenamiento" },
+            { "valor": "_source", "valor_por_defecto": True, "tipo": "checkbox", "valor_espanol": "Mostrar _source" }
+        ]
+    },
+    "missing": {
+        "obligatorios": [],
+        "opcionales": []
+    },
+    "value_count": {
+        "obligatorios": [],
+        "opcionales": []
+    },
+    "avg": {
+        "obligatorios": [],
+        "opcionales": []
+    },
+    "sum": {
+        "obligatorios": [],
+        "opcionales": []
+    },
+    "min": {
+        "obligatorios": [],
+        "opcionales": []
+    },
+    "max": {
+        "obligatorios": [],
+        "opcionales": []
+    },
+    "boxplot": {
+        "obligatorios": [],
+        "opcionales": [
+            { "valor": "compression", "valor_por_defecto": None, "tipo": "number", "valor_espanol": "Compresión" }
+        ]
+    },
+    "composite": {
+        "obligatorios": [
+            { "valor": "sources", "valor_por_defecto": None, "valor_espanol": "Fuentes", "tipo": "list" }
+        ],
+        "opcionales": [
+            { "valor": "size", "valor_por_defecto": 10, "tipo": "number", "valor_espanol": "Tamaño" },
+            { "valor": "after", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "Después de" }
+        ]
+    }
+}
+
+    return campos_operaciones.get(operacion, {})

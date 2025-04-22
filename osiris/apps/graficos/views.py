@@ -5,10 +5,11 @@ from rest_framework import status
 from apps.elasticsearch_utils.utils import (
     get_elasticsearch_client,
     obtener_operaciones_metricas,
-    obtener_operaciones_agrupacion
+    obtener_operaciones_agrupacion,
+    obtener_campos_operacion
 )
 import json
-
+from apps.campos.models import EstructuraCamposModelo
 
 
 class VistaTipoOperaciones(APIView):
@@ -92,7 +93,7 @@ class VistaCamposSugeridos(APIView):
             return Response({"detail": f"Invalid aggregation type. Supported: {list(self.AGGREGATION_TYPES.keys())}"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        index_id = index_id.lower()
+        index_id = EstructuraCamposModelo().get(es=es, nombre_indice=EstructuraCamposModelo.indice, item_id=index_id).indice_id
         try:
             mapping = es.indices.get_mapping(index=index_id)
         except Exception as e:
@@ -101,14 +102,13 @@ class VistaCamposSugeridos(APIView):
 
         fields = self.extract_fields(mapping, index_id)
         valid_types = self.AGGREGATION_TYPES[operacion]
-        print(fields)
 
         if operacion == "terms":
             result = [f for f, t in fields if t in valid_types or f.endswith(".keyword")]
         else:
             result = [f for f, t in fields if t in valid_types]
 
-        return Response({"operacion": operacion, "campos_recomendados": result})
+        return Response({"operacion": operacion, "campos_recomendados": result, "datos_operacion" : obtener_campos_operacion(operacion)})
     
 
     def extract_fields(self, mapping, index_id):
@@ -146,7 +146,7 @@ class VistaObtenerConfiguracionGrafico(APIView):
         configuracion = {}
 
 
-        if tipo == "pie" or tipo == "barras":
+        if tipo in ["pie", "barras", "linea"]:
             configuracion = {
                 "tipo": tipo,
                 "datos_requeridos":
@@ -204,7 +204,7 @@ class VistaObtenerDatosGrafico(APIView):
                     "etiquetas": {
                         etiquetas_agg: {
                             "field": etiquetas_campo,
-                            "size" : 1000
+                            # "size" : 1000
                         },
                         "aggs": {
                             "metrica": {
@@ -240,6 +240,7 @@ class VistaObtenerDatosGrafico(APIView):
             return Response(datos_procesados)
 
 class VistaProbarConfiguracionGrafico(APIView):
+
     def post(self, request, *args, **kwargs):
         cliente = get_elasticsearch_client()
         configuracion = request.data.get("configuracion")
@@ -248,11 +249,10 @@ class VistaProbarConfiguracionGrafico(APIView):
         if not configuracion or not indice:
             return Response({"error": "condifuracion y estructura son necesarios"},
                             status=status.HTTP_400_BAD_REQUEST)
-        
 
-        indice = indice.lower()
+        indice =  EstructuraCamposModelo().get(cliente, nombre_indice=EstructuraCamposModelo.indice, item_id=indice).indice_id
         tipo = configuracion.get("tipo")
-        if tipo not in ["pie", "barras"]:
+        if tipo not in ["pie", "barras", "linea" ]:
             return Response({"error": "Tipo de gráfico no soportado."},
                             status=status.HTTP_400_BAD_REQUEST)
         
@@ -270,29 +270,57 @@ class VistaProbarConfiguracionGrafico(APIView):
             etiquetas_agg = etiquetas.get("operacion")
             etiquetas_campo = etiquetas.get("campo")
 
+            etiquetas_agg_dict =  {
+                                "field": etiquetas_campo,
+                                }
+
+            metrica_agg_dict = {metrica_agg: {
+                                    "field": metrica_campo
+                                }}
+
+
+            metrica_agg_dict[metrica_agg] = {
+                **metrica_agg_dict[metrica_agg],
+                **{
+                    item.get("valor"): configuracion["metrica"]["opcionales"].get(item.get("valor"))
+                    for item in obtener_campos_operacion(metrica_agg).get("opcionales", [])
+                },
+                **{
+                    item.get("valor"): configuracion["metrica"]["obligatorios"].get(item.get("valor"))
+                    for item in obtener_campos_operacion(metrica_agg).get("obligatorios", [])
+                }
+            }
+
+            # Actualizar etiquetas_agg_dict
+            etiquetas_agg_dict = {
+                **etiquetas_agg_dict,
+                **{
+                    item.get("valor"): configuracion["etiquetas"]["opcionales"].get(item.get("valor"))
+                    for item in obtener_campos_operacion(etiquetas_agg).get("opcionales", [])
+                },
+                **{
+                    item.get("valor"): configuracion["etiquetas"]["obligatorios"].get(item.get("valor"))
+                    for item in obtener_campos_operacion(etiquetas_agg).get("obligatorios", [])
+                }
+            }
+
+
             datos = cliente.search(
                 index=indice,
                 body={
                     "size": 0,
                     "aggs": {
                         "etiquetas": {
-                            etiquetas_agg: {
-                                "field": etiquetas_campo,
-                                "size" : 1000
-                            },
+                            etiquetas_agg: etiquetas_agg_dict,
                             "aggs": {
-                                "metrica": {
-                                    metrica_agg: {
-                                        "field": metrica_campo
-                                    }
-                                }
-                            }
+                                "metrica": metrica_agg_dict
                         }
                     }
                 }
-            )
+            })
             
-
+            import json
+            print(json.dumps(datos["aggregations"], indent=4))
             if "aggregations" in datos:
                 datos_procesados = {
                     "data" : {
@@ -316,4 +344,3 @@ class VistaProbarConfiguracionGrafico(APIView):
                 return Response({"error": "No se encontraron resultados."},
                                 status=status.HTTP_404_NOT_FOUND)
             
-        return Response({"error": "Configuration tested successfully."})

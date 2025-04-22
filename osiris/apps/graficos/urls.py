@@ -9,6 +9,6 @@ urlpatterns = [
     path('campos_sugeridos/', VistaCamposSugeridos.as_view(), name='campos_sugeridos'),
     path('configuracion_grafico/', VistaObtenerConfiguracionGrafico.as_view(), name='configuracion_grafico'), 
     path('probar_configuracion/', VistaProbarConfiguracionGrafico.as_view(), name='probar_configuracion_grafico'),
-    path('datos/', VistaObtenerDatosGrafico.as_view(), name='datos_grafico'),
+    # path('datos/', VistaObtenerDatosGrafico.as_view(), name='datos_grafico'),
 ]
 

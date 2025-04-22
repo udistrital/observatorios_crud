@@ -49,7 +49,6 @@ class DatosViewSet(ElasticsearchViewSet):
             if "ordering" in kwargs.get("filtros"):
                 ordenamiento = kwargs.get("filtros").get("ordering")
                 ordenamiento = convertir_django_ordering_a_elastic_ordering(self._nombre_indice,ordenamiento)
-                print(ordenamiento)
 
 
 
@@ -210,7 +209,7 @@ class DatosViewSet(ElasticsearchViewSet):
 
 
 
-            csv_buffer = io.StringIO(archivo.read().decode('latin-1'))
+            csv_buffer = io.StringIO(archivo.read().decode('utf-8'))
             datos_procesados, errors = self.procesador.procesar_csv(csv_buffer)
             
             if errors:
@@ -224,7 +223,7 @@ class DatosViewSet(ElasticsearchViewSet):
             #TODO: agregar campo origin
             archivo = request.FILES['archivo']
             try:
-                contenido = archivo.read().decode('latin-1')  
+                contenido = archivo.read().decode('utf-8')  
                 datos_procesados = json.loads(contenido)  # Cargar el JSON
                 if not isinstance(datos_procesados, list):  
                     return Response({"error": "El archivo JSON debe contener una lista de objetos"}, status=400)
