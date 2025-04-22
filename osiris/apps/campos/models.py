@@ -93,6 +93,23 @@ class EstructuraCamposModelo(AuditoriaModelo):
                     )
                 
         return campos_nuevos
+    
+
+    def obtener_campos_nuevos(self, mapeo,cliente, item):
+        estructura =  self.get(cliente, item_id=item)
+        mapeo_viejo = estructura.mapeo.obtener_valor()
+        campos_nuevos = []
+        mapeo_viejo = { campo["nombre"]: campo for campo in mapeo_viejo}
+        for campo in mapeo:
+            if campo.get("nombre") and not campo.get("valor_anterior"):
+                if campo.get("nombre") not in mapeo_viejo.keys():
+                    campos_nuevos.append(
+                        campo
+                    )
+
+
+        return campos_nuevos
+
 
 
     def actualizar_mapeo(self, cliente, indice, body= {}):
@@ -102,18 +119,17 @@ class EstructuraCamposModelo(AuditoriaModelo):
             timeout = "10m",
         )
 
-        print (respuesta)
-
+    	
 
     def actualizar(self, cliente, indice, item_id=None, datos=...):
 
         mapeo =  datos.get("mapeo")
 
         if mapeo:  
-            campos_nuevos = self.obtener_campos_viejos(mapeo)
+            campos_cambiados = self.obtener_campos_viejos(mapeo)
 
             painless_script = ""
-            for campo in campos_nuevos:
+            for campo in campos_cambiados:
                 old = campo["viejo"]
                 new = campo["nuevo"]
                 painless_script += f"""
@@ -140,5 +156,16 @@ class EstructuraCamposModelo(AuditoriaModelo):
                 
                 self.actualizar_mapeo(cliente, index_id, body)
 
+            
+            campos_nuevos = self.obtener_campos_nuevos(mapeo, cliente, item_id)
+
+            if len(campos_nuevos)> 0:
+                nuevo_mapeo = self.obtener_mapeo(campos_nuevos)
+                cliente.indices.put_mapping(
+                    index =  index_id,
+                    body = nuevo_mapeo["mappings"],
+                )
+
         resultados_updates =  super().actualizar(cliente, indice, item_id, datos)
+        
         return resultados_updates

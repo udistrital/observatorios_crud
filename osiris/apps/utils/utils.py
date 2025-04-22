@@ -28,7 +28,8 @@ class ProcesadorRecursos():
     
     def procesar_csv(self, archivo) -> dict:
             
-            df = pd.read_csv(archivo, encoding='latin-1')
+            df = pd.read_csv(archivo)
+            print(df.head())
             data = df.to_dict(orient='records' )
             errors = self.ejecutar_validadores(df)
             

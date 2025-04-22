@@ -10,6 +10,9 @@ from drf_yasg import openapi
 
 from rest_framework.response import Response
 from .models import Dashboard, Grafico
+from rest_framework.decorators import action
+from apps.graficos.utils import construir_datos_de_grafica
+from apps.campos.models import EstructuraCamposModelo
 
 class DashboardViewSet(ElasticsearchViewSet):
     elastic_model = Dashboard
@@ -81,8 +84,9 @@ class GraficoViewSet(ElasticsearchViewSet):
         self.elastic_model.indice = self._nombre_indice
         try:
             dashboard = Dashboard().get(self.cliente, Dashboard.indice, kwargs.get("dashboard_id") )
+            self._nombre_indice = dashboard.indice_id
         except NotFoundError:
-            self.errors = {"dashboard_id" : ["Dashboard no encontrado"]}
+            self.errors = {"Dashboard id" : ["Dashboard no encontrado"]}
 
     def obtener_clase_serializador(self):
         if self.action == "update": return GraficoUpdateSerializer
@@ -160,5 +164,35 @@ class GraficoViewSet(ElasticsearchViewSet):
             return Response(self.errors, status=400)
         
         return super().update(request, pk, *args, **kwargs)
+    
+
+
+    @action(detail=True, methods=["get"])
+    def construir(self, request, *args, **kwargs):
+        """
+        Construye el grafico a partir de la configuracion
+        """
+        id_grafico = kwargs.get("pk")
+        grafico =  self.elastic_model().get(self.cliente, nombre_indice=self._nombre_indice, item_id=id_grafico)
+        
+        if not grafico:
+            return Response({"error": "No se encontró el grafico"}, status=404)
+        
+        configuracion = grafico.configuracion.obtener_valor()
+        estructura_id = grafico.estructura.obtener_valor()
+        estructura = EstructuraCamposModelo().get(self.cliente, EstructuraCamposModelo.indice, item_id=estructura_id)
+        
+        if not estructura:
+            return Response({"error": "No se encontró la estructura"}, status=404)
+        
+        datos = construir_datos_de_grafica(
+            configuracion= configuracion,
+            cliente= self.cliente,
+            indice= estructura.indice_id
+        )
+
+        return Response(datos)
+
+
 
 
