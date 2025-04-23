@@ -138,7 +138,7 @@ class EstructuraCamposModelo(AuditoriaModelo):
                 }}
                 """
             
-            estructura = self.get(cliente, item_id=item_id)
+            estructura = self.get(cliente,nombre_indice=indice, item_id=item_id)
 
             index_id = estructura.indice_id
 
