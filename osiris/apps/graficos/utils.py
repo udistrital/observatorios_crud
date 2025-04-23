@@ -74,7 +74,6 @@ def construir_datos_pie(configuracion, cliente, indice):
                 }
             )
         
-        print(json.dumps(datos, indent=4))
             
         datos_procesados = {}
         if "aggregations" in datos:
