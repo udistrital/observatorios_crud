@@ -13,6 +13,7 @@ from .models import Dashboard, Grafico
 from rest_framework.decorators import action
 from apps.graficos.utils import construir_datos_de_grafica
 from apps.campos.models import EstructuraCamposModelo
+from elasticsearch import helpers
 
 class DashboardViewSet(ElasticsearchViewSet):
     elastic_model = Dashboard
@@ -69,6 +70,63 @@ class DashboardViewSet(ElasticsearchViewSet):
         ]
 
         return Response(resultados)
+    
+
+    def update(self, request, pk=None, *args, **kwargs):
+        
+        respuesta =  super().update(request, pk, *args, **kwargs)
+        
+        cliente =  get_elasticsearch_client()
+        orden =  request.data.get("orden")
+
+        dashboard = self.elastic_model().get(
+            es=cliente,
+            nombre_indice=self._nombre_indice,
+            item_id=pk
+        )
+
+        dashboard_indice =  dashboard.indice_id
+
+        graficos =  cliente.search(
+            index=dashboard_indice,
+            body={
+                "query": {
+                    "match_all": {}
+                }
+            }
+        )
+
+
+        posiciones_a_actualizar =  []
+
+        for posicion in orden:
+            if posicion["slot"] != posicion["item"]:
+                columna_nueva , fila_nueva = posicion["item"].split("_")
+                columna_vieja , fila_vieja = posicion["slot"].split("_")
+
+                grafico  = next((item for item in graficos["hits"]["hits"] if item["_source"]["columna"] == int(columna_vieja) and item["_source"]["fila"] == int(fila_vieja)), None)
+
+                print(grafico)
+
+
+                if grafico:
+                    
+                    posiciones_a_actualizar.append({
+                        "_op_type": "update",  
+                        "_index": dashboard_indice,
+                        "_id": grafico["_id"],
+                        "doc": {
+                            "columna": int(columna_nueva), 
+                            "fila": int(fila_nueva),    
+                        }
+                    })
+                    
+        if posiciones_a_actualizar:
+            response = helpers.bulk(cliente, posiciones_a_actualizar)
+        
+        return respuesta
+
+
     
 
 
