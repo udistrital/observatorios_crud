@@ -96,33 +96,33 @@ class DashboardViewSet(ElasticsearchViewSet):
             }
         )
 
+        if(orden):
+            posiciones_a_actualizar =  []
 
-        posiciones_a_actualizar =  []
+            for posicion in orden:
+                if posicion["slot"] != posicion["item"]:
+                    columna_nueva , fila_nueva = posicion["item"].split("_")
+                    columna_vieja , fila_vieja = posicion["slot"].split("_")
 
-        for posicion in orden:
-            if posicion["slot"] != posicion["item"]:
-                columna_nueva , fila_nueva = posicion["item"].split("_")
-                columna_vieja , fila_vieja = posicion["slot"].split("_")
+                    grafico  = next((item for item in graficos["hits"]["hits"] if item["_source"]["columna"] == int(columna_vieja) and item["_source"]["fila"] == int(fila_vieja)), None)
 
-                grafico  = next((item for item in graficos["hits"]["hits"] if item["_source"]["columna"] == int(columna_vieja) and item["_source"]["fila"] == int(fila_vieja)), None)
-
-                print(grafico)
+                    print(grafico)
 
 
-                if grafico:
-                    
-                    posiciones_a_actualizar.append({
-                        "_op_type": "update",  
-                        "_index": dashboard_indice,
-                        "_id": grafico["_id"],
-                        "doc": {
-                            "columna": int(columna_nueva), 
-                            "fila": int(fila_nueva),    
-                        }
-                    })
-                    
-        if posiciones_a_actualizar:
-            response = helpers.bulk(cliente, posiciones_a_actualizar)
+                    if grafico:
+                        
+                        posiciones_a_actualizar.append({
+                            "_op_type": "update",  
+                            "_index": dashboard_indice,
+                            "_id": grafico["_id"],
+                            "doc": {
+                                "columna": int(columna_nueva), 
+                                "fila": int(fila_nueva),    
+                            }
+                        })
+                        
+            if posiciones_a_actualizar:
+                response = helpers.bulk(cliente, posiciones_a_actualizar)
         
         return respuesta
 
