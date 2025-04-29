@@ -319,8 +319,6 @@ class VistaProbarConfiguracionGrafico(APIView):
                 }
             })
             
-            import json
-            print(json.dumps(datos["aggregations"], indent=4))
             if "aggregations" in datos:
                 datos_procesados = {
                     "data" : {

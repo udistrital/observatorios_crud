@@ -6,10 +6,12 @@ class DashboardSerializer(BaseSerializerAuditoria):
     nombre = serializers.CharField(max_length=255)
     descripcion = serializers.CharField()
     observatorio = serializers.CharField()
+    columnas = serializers.IntegerField()
 
 class DashboardUpdateSerializer(BaseSerializerAuditoria):
     nombre = serializers.CharField(required= False ,max_length=255)
     descripcion = serializers.CharField(required= False)
+    columnas = serializers.IntegerField(required =  False)
 
 
 class GraficoSerializer(BaseSerializerAuditoria):

@@ -135,6 +135,31 @@ class GraficoViewSet(ElasticsearchViewSet):
     clase_serializador = GraficoSerializer
     cliente = get_elasticsearch_client()
 
+    def obtener_busqueda(self, *args, **kwargs):
+        busqueda_elastic = {
+            "size" : 10000,
+            "query": {
+                "bool": {
+                "should": [
+                    {
+                    "bool": {
+                        "must_not": {
+                        "exists": { "field": "activo" }
+                        }
+                    }
+                    },
+                    {
+                    "term": { "activo": True }
+                    },
+
+                ],
+                "minimum_should_match": 1
+                }
+            }
+        }
+
+        return busqueda_elastic
+
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
