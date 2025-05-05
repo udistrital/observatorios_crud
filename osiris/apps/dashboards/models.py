@@ -8,6 +8,7 @@ class Dashboard(AuditoriaModelo):
     nombre = ElasticCampo(str)
     descripcion = ElasticCampo(str)
     observatorio = ElasticCampo(str)
+    columnas =  ElasticCampo(int)
 
     indice =  "." + ELASTICSEARCH_MAIN_INDEX + "_dashboards"
 
