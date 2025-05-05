@@ -96,7 +96,7 @@ class EstructuraCamposModelo(AuditoriaModelo):
     
 
     def obtener_campos_nuevos(self, mapeo,cliente, item):
-        estructura =  self.get(cliente, item_id=item)
+        estructura =  self.get(cliente,nombre_indice=self.indice, item_id=item)
         mapeo_viejo = estructura.mapeo.obtener_valor()
         campos_nuevos = []
         mapeo_viejo = { campo["nombre"]: campo for campo in mapeo_viejo}
