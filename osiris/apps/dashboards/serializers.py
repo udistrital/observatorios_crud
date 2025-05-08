@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.elasticsearch_utils.serializers import BaseSerializerAuditoria
+from apps.graficos.utils import validar_configuracion
 
 class DashboardSerializer(BaseSerializerAuditoria):
     activo = serializers.BooleanField(default=True)
@@ -7,6 +8,8 @@ class DashboardSerializer(BaseSerializerAuditoria):
     descripcion = serializers.CharField()
     observatorio = serializers.CharField()
     columnas = serializers.IntegerField()
+
+
 
 class DashboardUpdateSerializer(BaseSerializerAuditoria):
     nombre = serializers.CharField(required= False ,max_length=255)
@@ -26,6 +29,13 @@ class GraficoSerializer(BaseSerializerAuditoria):
     def validate_configuracion(self, value):
         if not isinstance(value, dict) or not value:
             raise serializers.ValidationError("La configuración debe ser un diccionario no vacío.")
+        
+        try:
+            validar_configuracion(value)
+        except Exception as e:
+            raise serializers.ValidationError(f"Error en la configuración: {str(e)}")
+
+
         return value
 
 class GraficoUpdateSerializer(BaseSerializerAuditoria):
@@ -35,3 +45,14 @@ class GraficoUpdateSerializer(BaseSerializerAuditoria):
     columna = serializers.IntegerField(required= False)
     fila = serializers.IntegerField(required= False)
     estructura = serializers.CharField(required= False)
+
+    def validate_configuracion(self, value):
+        if not isinstance(value, dict) or not value:
+            raise serializers.ValidationError("La configuración debe ser un diccionario no vacío.")
+        
+        try:
+            validar_configuracion(value)
+        except Exception as e:
+            raise serializers.ValidationError(f"Error en la configuración: {str(e)}")
+
+        return value
