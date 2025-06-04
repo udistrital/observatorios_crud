@@ -80,7 +80,6 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             
             if serializador.is_valid():
                 datos = serializador.data
-                print(datos)
                 valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
                 datos.update(valores_limpiados)
             else:
@@ -102,21 +101,14 @@ class ElasticsearchViewSet(viewsets.ViewSet):
 
         if hasattr(self, "clase_serializador"):
             serializador =  self.obtener_clase_serializador()(data= datos)
-            serializador.is_valid()
-            datos = serializador.validated_data
-            valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
-            datos.update(valores_limpiados)        
-
+            if serializador.is_valid():
+                datos = serializador.validated_data
+                valores_limpiados = {clave: valores[0] for clave, valores in request.FILES.lists()}
+                datos.update(valores_limpiados)        
+            else:
+                return Response(serializador.errors, status=status.HTTP_400_BAD_REQUEST)
         respuesta = self.elastic_model().actualizar(cliente, self._nombre_indice, item_id = pk, datos = datos)
-        # objeto = self.elastic_model().get(cliente, item_id = pk)
-        # objeto.set(**datos)
-        # respuesta = cliente.update(
-        #     index=self._nombre_indice,  # El índice de Elasticsearch
-        #     id=pk,
-        #     body={"doc": objeto.obtener_documento()}
-        # )
-
-        # objeto.guardar_campos_archivos(cliente, self._nombre_indice)
+        
         return Response(respuesta)
 
     # Método para eliminar un documento de Elasticsearch

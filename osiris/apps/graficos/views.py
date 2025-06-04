@@ -319,6 +319,7 @@ class VistaProbarConfiguracionGrafico(APIView):
                 }
             })
 
+            
             if "aggregations" in datos:
                 datos_procesados = {
                     "data" : {

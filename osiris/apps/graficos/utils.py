@@ -349,6 +349,76 @@ def construir_datos_de_grafica(configuracion, cliente, indice):
 
     return datos
     
+def validar_configuracion(configuracion):
+    """
+    Valida la configuración proporcionada para construir gráficos.
 
+    :param configuracion: Diccionario con la configuración del gráfico.
+    :raises ValueError: Si falta algún campo obligatorio o si los valores no son válidos.
+    """
+    tipo = configuracion.get("tipo")
+    if tipo not in ["pie", "barras", "linea"]:
+        raise ValueError(f"Tipo de gráfico no soportado: {tipo}. Tipos válidos: 'pie', 'barras', 'linea'.")
+
+    # Llamar a la función de validación específica según el tipo de gráfica
+    if tipo == "pie":
+        validar_configuracion_pie(configuracion)
+    elif tipo == "barras":
+        validar_configuracion_barras(configuracion)
+    elif tipo == "linea":
+        validar_configuracion_linea(configuracion)
+
+    return True
+
+
+def validar_configuracion_pie(configuracion):
+    """
+    Valida la configuración específica para gráficos de tipo 'pie'.
+    """
+    if "metrica" not in configuracion or "etiquetas" not in configuracion:
+        raise ValueError("La configuración para gráficos de tipo 'pie' debe incluir 'metrica' y 'etiquetas'.")
+
+    metrica = configuracion["metrica"]
+    etiquetas = configuracion["etiquetas"]
+
+    if not isinstance(metrica, dict) or "operacion" not in metrica or "campo" not in metrica:
+        raise ValueError("La métrica debe ser un diccionario con las claves 'operacion' y 'campo'.")
+
+    if not isinstance(etiquetas, dict) or "operacion" not in etiquetas or "campo" not in etiquetas:
+        raise ValueError("Las etiquetas deben ser un diccionario con las claves 'operacion' y 'campo'.")
+
+
+def validar_configuracion_barras(configuracion):
+    """
+    Valida la configuración específica para gráficos de tipo 'barras'.
+    """
+    if "metrica" not in configuracion or "etiquetas" not in configuracion:
+        raise ValueError("La configuración para gráficos de tipo 'barras' debe incluir 'metrica' y 'etiquetas'.")
+
+    metrica = configuracion["metrica"]
+    etiquetas = configuracion["etiquetas"]
+
+    if not isinstance(metrica, dict) or "operacion" not in metrica or "campo" not in metrica:
+        raise ValueError("La métrica debe ser un diccionario con las claves 'operacion' y 'campo'.")
+
+    if not isinstance(etiquetas, dict) or "operacion" not in etiquetas or "campo" not in etiquetas:
+        raise ValueError("Las etiquetas deben ser un diccionario con las claves 'operacion' y 'campo'.")
+
+
+def validar_configuracion_linea(configuracion):
+    """
+    Valida la configuración específica para gráficos de tipo 'linea'.
+    """
+    if "metrica" not in configuracion or "etiquetas" not in configuracion:
+        raise ValueError("La configuración para gráficos de tipo 'linea' debe incluir 'metrica' y 'etiquetas'.")
+
+    metrica = configuracion["metrica"]
+    etiquetas = configuracion["etiquetas"]
+
+    if not isinstance(metrica, dict) or "operacion" not in metrica or "campo" not in metrica:
+        raise ValueError("La métrica debe ser un diccionario con las claves 'operacion' y 'campo'.")
+
+    if not isinstance(etiquetas, dict) or "operacion" not in etiquetas or "campo" not in etiquetas:
+        raise ValueError("Las etiquetas deben ser un diccionario con las claves 'operacion' y 'campo'.")
 
     
