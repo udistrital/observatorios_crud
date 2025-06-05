@@ -154,7 +154,6 @@ def obtener_campos_operacion(operacion : str):
         "opcionales": [
             { "valor": "min_doc_count", "valor_por_defecto": 1, "tipo": "number", "valor_espanol": "Mínimo de documentos" },
             { "valor": "offset", "valor_por_defecto": 0, "tipo": "number", "valor_espanol": "Offset" },
-            # { "valor": "extended_bounds", "valor_por_defecto": None, "tipo": "text", "valor_espanol": "Límites extendidos" },
             { "valor": "keyed", "valor_por_defecto": False, "tipo": "checkbox", "valor_espanol": "Indexado por clave" }
         ]
     },

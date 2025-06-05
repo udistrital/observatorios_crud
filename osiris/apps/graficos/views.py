@@ -8,8 +8,13 @@ from apps.elasticsearch_utils.utils import (
     obtener_operaciones_agrupacion,
     obtener_campos_operacion
 )
-import json
 from apps.campos.models import EstructuraCamposModelo
+from django.conf import settings
+from .utils import (
+    get_configuracion_necesaria,
+    construir_datos_de_grafica
+    )
+
 
 
 class VistaTipoOperaciones(APIView):
@@ -139,30 +144,16 @@ class VistaObtenerConfiguracionGrafico(APIView):
 
     def get(self, request, *args, **kwargs):
 
-        metrica =  obtener_operaciones_metricas().get("operaciones", [])
-        agrupaciones = obtener_operaciones_agrupacion().get("operaciones", [])
-
         tipo = request.query_params.get("tipo")
         configuracion = {}
 
 
-        if tipo in ["pie", "barras", "linea"]:
-            configuracion = {
-                "tipo": tipo,
-                "datos_requeridos":
-                [
-                    {
-                        "tipo" : "metrica",
-                        "valores" : metrica
-                    },
-                    {
-                        "tipo" : "etiquetas",
-                        "valores" : agrupaciones
-                    }
-                ]
-            }
+        if tipo not in settings.GRAFICOS:
+            return Response({"error": "Tipo de gráfico no soportado."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        
+        configuracion = get_configuracion_necesaria(tipo)
+
         return Response(configuracion)
 
 
@@ -252,11 +243,20 @@ class VistaProbarConfiguracionGrafico(APIView):
 
         indice =  EstructuraCamposModelo().get(cliente, nombre_indice=EstructuraCamposModelo.indice, item_id=indice).indice_id
         tipo = configuracion.get("tipo")
-        if tipo not in ["pie", "barras", "linea" ]:
+        
+        if tipo not in settings.GRAFICOS:
             return Response({"error": "Tipo de gráfico no soportado."},
                             status=status.HTTP_400_BAD_REQUEST)
         
         else:
+
+            datos = construir_datos_de_grafica(
+                configuracion= configuracion,
+                cliente= cliente,
+                indice= indice
+            )
+
+            return Response(datos)
             metrica = configuracion.get("metrica")
             etiquetas = configuracion.get("etiquetas")
             
@@ -318,6 +318,7 @@ class VistaProbarConfiguracionGrafico(APIView):
                     }
                 }
             })
+
             
             if "aggregations" in datos:
                 datos_procesados = {

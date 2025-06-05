@@ -184,3 +184,5 @@ REST_FRAMEWORK = {
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'apps.utils.views.custom_exception_handler'
 }
+
+GRAFICOS = ["pie", "barras", "linea", "multiple_linea" , "heatmap"]
