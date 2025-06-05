@@ -14,6 +14,8 @@ steps:
       - sonar-scanner
     when:
       branch:
-        - main
+        - develop
+        - feature/*
+        - release/*
       event:
         - push
