@@ -19,3 +19,4 @@ Pillow
 pandas
 django-cors-headers
 gunicorn
+boto3

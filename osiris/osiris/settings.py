@@ -15,6 +15,7 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
+from osiris.aws_ssm import get_ssm_parameter
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -151,18 +152,25 @@ HAYSTACK_CONNECTIONS = {
 ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")  
 ELASTICSEARCH_PORT = os.getenv("ELASTICSEARCH_PORT") 
 ELASTICSEARCH_MAIN_INDEX = os.getenv("ELASTICSEARCH_MAIN_INDEX") 
-print(ELASTICSEARCH_HOST)
 
+PARAMETER_STORE_BASE = os.getenv("PARAMETER_STORE")
 
+base_path = f"/{PARAMETER_STORE_BASE}/observatorios_crud/db/"
+
+ES_USERNAME = get_ssm_parameter(base_path + "username")
+ES_PASSWORD = get_ssm_parameter(base_path + "password")
 
 ELASTICSEARCH_DSL = {
     'default': {
-        'HOST': ELASTICSEARCH_HOST,  # Dirección de tu servidor Elasticsearch
-        'PORT': ELASTICSEARCH_PORT,         # Puerto de Elasticsearch
+        'HOST': ELASTICSEARCH_HOST,
+        'PORT': ELASTICSEARCH_PORT,
+        'USERNAME': ES_USERNAME,
+        'PASSWORD': ES_PASSWORD,
     },
 }
 
-ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+#ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+ES_HOST = f"http://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
 
 SWAGGER_SETTINGS = {
    'USE_SESSION_AUTH': False
