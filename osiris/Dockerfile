@@ -10,7 +10,11 @@ COPY . .
 # Copia el archivo .env desde la carpeta padre
 COPY .env .env
 
+ENV PYTHONUNBUFFERED=1
+
 # Instala las dependencias
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Ejecutamos el servidor
+CMD ["sh", "-c", "python manage.py migrate && gunicorn --workers 2 --bind 0.0.0.0:8000 osiris.wsgi:application"]

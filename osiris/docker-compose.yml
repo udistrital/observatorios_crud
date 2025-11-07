@@ -23,7 +23,7 @@ services:
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false  # Deshabilita la seguridad (solo para desarrollo)
+      - xpack.security.enabled=true  # Deshabilita la seguridad (solo para desarrollo)
       - xpack.security.transport.ssl.enabled=false
       - xpack.security.http.ssl.enabled=false
     ports:
