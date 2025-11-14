@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      #- ELASTIC_USERNAME=${ELASTIC_USERNAME}
+      #- ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=false  # Habilita la seguridad (solo para producción)
+      - xpack.security.transport.ssl.enabled=false
+      - xpack.security.http.ssl.enabled=false
+    expose:
+      - "9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - backend
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      #- ELASTICSEARCH_USERNAME=${ELASTIC_USERNAME}
+      #- ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_elastic
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - kibana
+    networks:
+      - backend
+
+volumes:
+  es_data:
+
+networks:
+  backend:
+    driver: bridge
