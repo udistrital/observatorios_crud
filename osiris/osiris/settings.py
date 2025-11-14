@@ -15,10 +15,27 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
+#import logging
+#from elasticsearch import Elasticsearch, exceptions as es_exceptions
 from osiris.aws_ssm import get_ssm_parameter
 from dotenv import load_dotenv
 load_dotenv()
 
+#LOGGING = {
+#    'version': 1,
+#    'disable_existing_loggers': False,
+#    'handlers': {
+#        'console': {
+#            'class': 'logging.StreamHandler',
+#        },
+#    },
+#    'loggers': {
+#        'elasticsearch': {   # logger específico para ES
+#            'handlers': ['console'],
+#            'level': 'INFO',
+#        },
+#    },
+#}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
@@ -27,10 +44,11 @@ load_dotenv()
 SECRET_KEY = "django-insecure-a(yqs0u3bd_kb6u8%d$yqhu8xbxm$cr=#pkf3y^nr47kx^#nq6"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+#DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+DEBUG = "true"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
-
+#ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -137,15 +155,15 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-HAYSTACK_URL_CONNECTION =  "" 
-HAYSTACK_ADMIN_INDEX = ".admin"
-HAYSTACK_CONNECTIONS = {
-    'default': {
-        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
-        'URL': 'http://localhost:9200/',  # URL de tu servidor Elasticsearch
-        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',      # Nombre del índice
-    },
-}
+#HAYSTACK_URL_CONNECTION =  "" 
+#HAYSTACK_ADMIN_INDEX = ".admin"
+#HAYSTACK_CONNECTIONS = {
+#    'default': {
+#        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
+#        'URL': 'http://localhost:9200/',  # URL de tu servidor Elasticsearch
+#        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',      # Nombre del índice
+#    },
+#}
 
 
 
@@ -153,28 +171,69 @@ ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")
 ELASTICSEARCH_PORT = os.getenv("ELASTICSEARCH_PORT") 
 ELASTICSEARCH_MAIN_INDEX = os.getenv("ELASTICSEARCH_MAIN_INDEX") 
 
-PARAMETER_STORE_BASE = os.getenv("PARAMETER_STORE")
+#PARAMETER_STORE_BASE = os.getenv("PARAMETER_STORE")
 
-base_path = f"/{PARAMETER_STORE_BASE}/observatorios_crud/db/"
+#base_path = f"/{PARAMETER_STORE_BASE}/observatorios_crud/db/"
 
-ES_USERNAME = get_ssm_parameter(base_path + "username")
-ES_PASSWORD = get_ssm_parameter(base_path + "password")
+#ES_USERNAME = get_ssm_parameter(base_path + "username")
+#ES_PASSWORD = get_ssm_parameter(base_path + "password")
+
+#ES_USERNAME = os.getenv("ELASTICSEARCH_USERNAME") 
+#ES_PASSWORD = os.getenv("ELASTICSEARCH_PASSWORD")
 
 ELASTICSEARCH_DSL = {
     'default': {
         'HOST': ELASTICSEARCH_HOST,
         'PORT': ELASTICSEARCH_PORT,
-        'USERNAME': ES_USERNAME,
-        'PASSWORD': ES_PASSWORD,
     },
 }
 
-#ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
-ES_HOST = f"http://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+#ELASTICSEARCH_DSL = {
+#    'default': {
+#        'HOST': ELASTICSEARCH_HOST,
+#       'PORT': ELASTICSEARCH_PORT,
+#        'USERNAME': ES_USERNAME,
+#        'PASSWORD': ES_PASSWORD,
+#    },
+#}
 
-SWAGGER_SETTINGS = {
-   'USE_SESSION_AUTH': False
+ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+#ES_HOST = f"http://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+
+# Log y prueba de conexión
+#es_logger = logging.getLogger("elasticsearch")
+#
+#try:
+#    es = Elasticsearch(ES_HOST)
+#    if es.ping():
+#        es_logger.info(f"✅ Elasticsearch conectado correctamente: {ES_HOST}")
+#    else:
+#        es_logger.error(f"⚠️ Elasticsearch no respondió al ping: {ES_HOST}")
+#except es_exceptions.ConnectionError as e:
+#    es_logger.error(f"❌ Error conectando a Elasticsearch: {e}")
+#except Exception as e:
+#    es_logger.error(f"❌ Error inesperado al conectar a Elasticsearch: {e}")
+#
+#SWAGGER_SETTINGS = {
+#   'USE_SESSION_AUTH': False
+#}
+
+HAYSTACK_URL_CONNECTION =  "" 
+HAYSTACK_ADMIN_INDEX = ".admin"
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
+        'URL': f"http://{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
+        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
+    },
 }
+#HAYSTACK_CONNECTIONS = {
+#    'default': {
+#        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
+#        'URL': f"http://{ES_USERNAME}:{ES_PASSWORD}@{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
+#       'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
+#    },
+#}
 
 LANGUAGE_CODE = 'es'
 
@@ -194,3 +253,5 @@ REST_FRAMEWORK = {
 }
 
 GRAFICOS = ["pie", "barras", "linea", "multiple_linea" , "heatmap"]
+
+

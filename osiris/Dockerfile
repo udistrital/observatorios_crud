@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . .
 
 # Copia el archivo .env desde la carpeta padre
-COPY .env .env
+#COPY .env .env
 
 ENV PYTHONUNBUFFERED=1
 
