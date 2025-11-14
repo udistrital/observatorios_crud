@@ -14,34 +14,9 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
+    networks:
+      - elastic_net
 
-    depends_on:
-      - elasticsearch 
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=true  # Deshabilita la seguridad (solo para desarrollo)
-      - xpack.security.transport.ssl.enabled=false
-      - xpack.security.http.ssl.enabled=false
-    ports:
-      - "9200:9200"  # Puerto para acceder a Elasticsearch
-      - "9300:9300"  # Puerto para transporte interno
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.10.2
-    container_name: kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"  # Puerto para acceder a Kibana
-    depends_on:
-      - elasticsearch  # Asegura que Elasticsearch se inicie antes que Kibana
-
-volumes:
-  es_data:
-    driver: local
+networks:
+  elastic_net:
+    external: true
