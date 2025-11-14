@@ -15,27 +15,27 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
-#import logging
+import logging
 #from elasticsearch import Elasticsearch, exceptions as es_exceptions
 from osiris.aws_ssm import get_ssm_parameter
 from dotenv import load_dotenv
 load_dotenv()
 
-#LOGGING = {
-#    'version': 1,
-#    'disable_existing_loggers': False,
-#    'handlers': {
-#        'console': {
-#            'class': 'logging.StreamHandler',
-#        },
-#    },
-#    'loggers': {
-#        'elasticsearch': {   # logger específico para ES
-#            'handlers': ['console'],
-#            'level': 'INFO',
-#        },
-#    },
-#}
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'elasticsearch': {   # logger específico para ES
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
