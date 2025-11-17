@@ -41,6 +41,25 @@ steps:
       event:
         - push
 
+  - name: publish_to_ecr_prod_elastic
+    image: docker:25.0.0-dind
+    privileged: true
+    environment:
+      DOCKER_HOST: tcp://docker:2375
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - name: dockersock
+        path: /var/run
+    commands:
+      - apk add --no-cache docker-cli docker-compose
+      - cd infraestructura
+      - docker-compose -f docker-compose-prod.yml up -d --build
+    when:
+      branch:
+        - release/*
+      event:
+        - push
+
   - name: publish_to_ecr_prod
     image: plugins/ecr
     settings:
