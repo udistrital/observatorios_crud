@@ -12,9 +12,21 @@ class ElasticsearchViewSet(viewsets.ViewSet):
         self._nombre_indice = "sair_index"
 
     # Conectar a Elasticsearch
+    #def get_elasticsearch_client(self):
+    #   return Elasticsearch(ES_HOST)
     def get_elasticsearch_client(self):
-        
-        return Elasticsearch(ES_HOST)
+        return Elasticsearch(
+            hosts=[{
+                "host": settings.ELASTICSEARCH_HOST,
+                "port": int(settings.ELASTICSEARCH_PORT),
+            }],
+            basic_auth=(
+                settings.ES_USERNAME,
+                settings.ES_PASSWORD
+            ),
+            verify_certs=False
+        )
+
 
     def obtener_busqueda(self, *args, **kwargs):
         return {
