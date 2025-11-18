@@ -171,34 +171,34 @@ ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")
 ELASTICSEARCH_PORT = os.getenv("ELASTICSEARCH_PORT") 
 ELASTICSEARCH_MAIN_INDEX = os.getenv("ELASTICSEARCH_MAIN_INDEX") 
 
-#PARAMETER_STORE_BASE = os.getenv("PARAMETER_STORE")
+PARAMETER_STORE_BASE = os.getenv("PARAMETER_STORE")
 
-#base_path = f"/{PARAMETER_STORE_BASE}/observatorios_crud/db/"
+base_path = f"/{PARAMETER_STORE_BASE}/observatorios_crud/db/"
 
-#ES_USERNAME = get_ssm_parameter(base_path + "username")
-#ES_PASSWORD = get_ssm_parameter(base_path + "password")
+ES_USERNAME = get_ssm_parameter(base_path + "username")
+ES_PASSWORD = get_ssm_parameter(base_path + "password")
 
 #ES_USERNAME = os.getenv("ELASTICSEARCH_USERNAME") 
 #ES_PASSWORD = os.getenv("ELASTICSEARCH_PASSWORD")
 
-ELASTICSEARCH_DSL = {
-    'default': {
-        'HOST': ELASTICSEARCH_HOST,
-        'PORT': ELASTICSEARCH_PORT,
-    },
-}
-
 #ELASTICSEARCH_DSL = {
 #    'default': {
 #        'HOST': ELASTICSEARCH_HOST,
-#       'PORT': ELASTICSEARCH_PORT,
-#        'USERNAME': ES_USERNAME,
-#        'PASSWORD': ES_PASSWORD,
+#        'PORT': ELASTICSEARCH_PORT,
 #    },
 #}
 
-ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
-#ES_HOST = f"http://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+ELASTICSEARCH_DSL = {
+    'default': {
+        'HOST': ELASTICSEARCH_HOST,
+       'PORT': ELASTICSEARCH_PORT,
+        'USERNAME': ES_USERNAME,
+        'PASSWORD': ES_PASSWORD,
+    },
+}
+
+#ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+ES_HOST = f"http://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
 
 # Log y prueba de conexión
 #es_logger = logging.getLogger("elasticsearch")
@@ -218,22 +218,24 @@ ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']
 #   'USE_SESSION_AUTH': False
 #}
 
-HAYSTACK_URL_CONNECTION =  "" 
+#HAYSTACK_URL_CONNECTION =  "" 
+#HAYSTACK_ADMIN_INDEX = ".admin"
+#HAYSTACK_CONNECTIONS = {
+#    'default': {
+#        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
+#        'URL': f"http://{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
+#        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
+#    },
+#}
+
 HAYSTACK_ADMIN_INDEX = ".admin"
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
-        'URL': f"http://{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
-        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
+        'URL': f"http://{ES_USERNAME}:{ES_PASSWORD}@{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
+       'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
     },
 }
-#HAYSTACK_CONNECTIONS = {
-#    'default': {
-#        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
-#        'URL': f"http://{ES_USERNAME}:{ES_PASSWORD}@{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
-#       'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
-#    },
-#}
 
 LANGUAGE_CODE = 'es'
 

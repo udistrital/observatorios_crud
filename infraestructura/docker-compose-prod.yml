@@ -8,7 +8,7 @@ services:
       - discovery.type=single-node
       #- ELASTIC_USERNAME=${ELASTIC_USERNAME}
       #- ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-      - xpack.security.enabled=false  # Habilita la seguridad (solo para producción)
+      - xpack.security.enabled=true  # Habilita la seguridad (solo para producción)
       - xpack.security.transport.ssl.enabled=false
       - xpack.security.http.ssl.enabled=false
     expose:
