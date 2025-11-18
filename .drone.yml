@@ -22,6 +22,9 @@ steps:
 
   - name: publish_to_ecr_release
     image: plugins/ecr
+    commands:
+      - pwd
+      - ls -R .
     settings:
       access_key:
         from_secret: AWS_ACCESS_KEY_ID
