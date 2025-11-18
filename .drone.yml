@@ -41,7 +41,7 @@ steps:
       event:
         - push
 
-- name: publish_elasticsearch
+  - name: publish_elasticsearch
     image: plugins/ecr
     settings:
       access_key:
