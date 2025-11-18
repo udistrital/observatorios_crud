@@ -57,7 +57,8 @@ steps:
         - latest
     when:
       branch:
-        - release/*
+        #- release/*
+        - master
       event:
         - push
 
@@ -77,7 +78,8 @@ steps:
         - latest
     when:
       branch:
-        - release/*
+        #- release/*
+        - master
       event:
         - push
 
@@ -97,7 +99,8 @@ steps:
         - latest
     when:
       branch:
-        - release/*
+        #- release/*
+        - master
       event:
         - push
 
