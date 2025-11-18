@@ -41,19 +41,60 @@ steps:
       event:
         - push
 
-  - name: publish_to_ecr_prod_elastic
-    image: docker:25.0.0-dind
-    privileged: true
-    environment:
-      DOCKER_HOST: tcp://docker:2375
-      DOCKER_TLS_CERTDIR: ""
-    volumes:
-      - name: dockersock
-        path: /var/run
-    commands:
-      - apk add --no-cache docker-cli docker-compose
-      - cd infraestructura
-      - docker-compose -f docker-compose-prod.yml up -d --build
+- name: publish_elasticsearch
+    image: plugins/ecr
+    settings:
+      access_key:
+        from_secret: AWS_ACCESS_KEY_ID
+      create_repository: true
+      region:
+        from_secret: AWS_REGION
+      repo: elasticsearch-service
+      dockerfile: infraestructura/elasticsearch/Dockerfile
+      secret_key:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      tags:
+        - latest
+    when:
+      branch:
+        - release/*
+      event:
+        - push
+
+  - name: publish_kibana
+    image: plugins/ecr
+    settings:
+      access_key:
+        from_secret: AWS_ACCESS_KEY_ID
+      create_repository: true
+      region:
+        from_secret: AWS_REGION
+      repo: kibana-service
+      dockerfile: infraestructura/kibana/Dockerfile
+      secret_key:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      tags:
+        - latest
+    when:
+      branch:
+        - release/*
+      event:
+        - push
+
+  - name: publish_nginx
+    image: plugins/ecr
+    settings:
+      access_key:
+        from_secret: AWS_ACCESS_KEY_ID
+      create_repository: true
+      region:
+        from_secret: AWS_REGION
+      repo: nginx-elastic
+      dockerfile: infraestructura/nginx/Dockerfile
+      secret_key:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      tags:
+        - latest
     when:
       branch:
         - release/*
