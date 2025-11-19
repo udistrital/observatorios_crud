@@ -28,7 +28,7 @@ steps:
         from_secret: AWS_ACCESS_KEY_ID
       create_repository: true
       dockerfile: osiris/Dockerfile
-      #context: osiris
+      context: osiris
       region:
         from_secret: AWS_REGION
       repo: ${DRONE_REPO_NAME}
