@@ -18,6 +18,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path("", include("apps.utils.urls")),
     path("admin/", admin.site.urls),
 
     
