@@ -26,6 +26,7 @@ urlpatterns = [
     re_path(r"documentacion/^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
 
     path("api/<str:version>/", include("apps.utils.urls")),
+    
     ### Datos (Estructuras) ###
     path("api/<str:version>/", include("apps.datos.urls")),
 
