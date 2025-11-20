@@ -19,7 +19,7 @@ def custom_exception_handler(exc, context):
 
 #Helthcheck endpoint
 @api_view(['GET'])
-def healthcheck(request, version=None):
+def healthcheck(request):
     return Response({
         "Status": "Ok",
         "Code": "200"
