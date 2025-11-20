@@ -18,9 +18,6 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    ### Healthcheck ###
-    #re_path(r"^$", include("apps.utils.urls")),
-
     path("admin/", admin.site.urls),
 
     ### Documentación ###
@@ -28,9 +25,7 @@ urlpatterns = [
     path("documentacion/redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
     re_path(r"documentacion/^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
 
-
     ### Healthcheck ###
-    #re_path(r"^$", include("apps.utils.urls")),
     path("api", include("apps.utils.urls")),
 
     ### Datos (Estructuras) ###
