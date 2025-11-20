@@ -19,6 +19,7 @@ class ElasticsearchViewSet(viewsets.ViewSet):
             hosts=[{
                 "host": settings.ELASTICSEARCH_HOST,
                 "port": int(settings.ELASTICSEARCH_PORT),
+                "scheme": "http",
             }],
             basic_auth=(
                 settings.ES_USERNAME,
