@@ -147,7 +147,7 @@ class DatosViewSet(ElasticsearchViewSet):
             )
 
             #return Response(status=status.HTTP_204_NO_CONTENT)
-            return HttpResponse(status=204)
+            return Response(respuesta)
 
     @swagger_auto_schema(
         operation_description="Obtiene un item en especifico de la estructura de datos",
