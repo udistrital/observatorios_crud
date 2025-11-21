@@ -18,6 +18,8 @@ from .serializers import DatosSerializers
 from apps.campos.models import EstructuraCamposModelo
 from rest_framework.pagination import PageNumberPagination
 
+from django.http import HttpResponse
+
 class CustomPagination(PageNumberPagination):
     page_size = 50  # Valor por defecto
     page_size_query_param = 'page_size'  # Permite cambiar el tamaño con `?page_size=10`
@@ -144,7 +146,8 @@ class DatosViewSet(ElasticsearchViewSet):
                 body={"doc": {"_activo": False}}
             )
 
-            return Response(status=status.HTTP_204_NO_CONTENT)    
+            #return Response(status=status.HTTP_204_NO_CONTENT)
+            return HttpResponse(status=204)
 
     @swagger_auto_schema(
         operation_description="Obtiene un item en especifico de la estructura de datos",

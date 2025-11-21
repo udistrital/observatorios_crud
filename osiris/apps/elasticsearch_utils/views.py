@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from elasticsearch import Elasticsearch
 from django.conf import settings
+from django.http import HttpResponse
 from osiris.settings import ES_HOST
 import json
 
@@ -129,4 +130,5 @@ class ElasticsearchViewSet(viewsets.ViewSet):
         cliente = self.get_elasticsearch_client()
         
         self.elastic_model().eliminar(cliente, self._nombre_indice, item_id = pk)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        #return Response(status=status.HTTP_204_NO_CONTENT)
+        return HttpResponse(status=204)
