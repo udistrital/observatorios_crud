@@ -104,7 +104,12 @@ class EstructuraCamposViewSet(ElasticsearchViewSet):
 
         for item in resultado_busqueda["hits"]["hits"]:
             for campo in item["_source"]["mapeo"]:
-                campo.update({"valor_anterior": campo.get("nombre")})
+                if "valor_anterior" not in campo:
+                    campo["valor_anterior"] = campo.get("nombre")
+
+            for campo in item["_source"].get("mapeo_archivos", []):
+                if "valor_anterior" not in campo:
+                    campo["valor_anterior"] = campo.get("nombre")
 
         resultados = [ 
             self.elastic_model(**{**item["_source"], "id": item["_id"]}).obtener_documento( imagen_en_base64 = True )      

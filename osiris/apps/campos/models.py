@@ -171,7 +171,21 @@ class EstructuraCamposModelo(AuditoriaModelo):
             timeout = "10m",
         )
 
-    	
+    def normalizar_mapeo(self, mapeo):
+        """
+        Mantiene valor_anterior SOLO si viene del frontend.
+        """
+        resultado = []
+        for campo in mapeo:
+            nuevo = {
+                "nombre": campo["nombre"],
+                "tipo": campo["tipo"],
+            }
+            if "valor_anterior" in campo:
+                nuevo["valor_anterior"] = campo["valor_anterior"]
+            resultado.append(nuevo)
+        return resultado
+
 
     def actualizar(self, cliente, indice, item_id=None, datos=...):
 
@@ -223,51 +237,52 @@ class EstructuraCamposModelo(AuditoriaModelo):
             estructura = self.get(cliente, nombre_indice=indice, item_id=item_id)
             index_arch_id = estructura.indice_id_archivos
 
-            # 1️⃣ Detectar cambios de nombre
+            # 🔹 Detectar renombres usando valor_anterior
             campos_cambiados_arch = [
-                {"viejo": c.get("valor_anterior"), "nuevo": c.get("nombre")}
+                {
+                    "viejo": c["valor_anterior"],
+                    "nuevo": c["nombre"]
+                }
                 for c in mapeo_archivos
-                if c.get("valor_anterior") and c.get("valor_anterior") != c.get("nombre")
+                if c.get("valor_anterior") and c["valor_anterior"] != c["nombre"]
             ]
 
-            painless_script_arch = ""
-            for campo in campos_cambiados_arch:
-                old = campo["viejo"]
-                new = campo["nuevo"]
-                painless_script_arch += f"""
+            # 🔹 SOLO mover datos, NO mapping
+            if campos_cambiados_arch:
+                painless_script_arch = ""
+                for campo in campos_cambiados_arch:
+                    old = campo["viejo"]
+                    new = campo["nuevo"]
+                    painless_script_arch += f"""
                     if (ctx._source.containsKey('{old}')) {{
                         ctx._source['{new}'] = ctx._source.remove('{old}');
                     }}
-                """
+                    """
 
-            # 2️⃣ Ejecutar renombrado en ES
-            if len(painless_script_arch) > 0:
-                body = {
-                    "script": {
-                        "lang": "painless",
-                        "source": painless_script_arch,
-                    },
-                    "query": {"match_all": {}}
-                }
-                cliente.update_by_query(index=index_arch_id, body=body, timeout="10m")
-
-            # 3️⃣ Detectar campos nuevos
-            campos_arch_viejos = estructura.mapeo_archivos.obtener_valor() or []
-            n_viejos = {c["nombre"]: c for c in campos_arch_viejos}
-
-            campos_nuevos_arch = [
-                c for c in mapeo_archivos
-                if not c.get("valor_anterior") and c["nombre"] not in n_viejos
-            ]
-
-            # 4️⃣ Aplicar nuevo mapeo
-            if campos_nuevos_arch:
-                nuevo_mapeo = self.obtener_mapeo(campos_nuevos_arch)
-                cliente.indices.put_mapping(
+                cliente.update_by_query(
                     index=index_arch_id,
-                    body=nuevo_mapeo["mappings"],
+                    body={
+                        "script": {
+                            "lang": "painless",
+                            "source": painless_script_arch,
+                        },
+                        "query": {"match_all": {}}
+                    },
+                    timeout="10m"
                 )
 
-        resultados_updates =  super().actualizar(cliente, indice, item_id, datos)
-        
-        return resultados_updates
+        if "mapeo" in datos:
+            datos["mapeo"] = self.normalizar_mapeo(datos["mapeo"])
+
+        if "mapeo_archivos" in datos:
+            datos["mapeo_archivos"] = self.normalizar_mapeo(datos["mapeo_archivos"])
+
+
+        estructura_actualizada = super().actualizar(
+            cliente,
+            indice,
+            item_id,
+            datos
+        )
+
+        return estructura_actualizada

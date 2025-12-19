@@ -59,26 +59,6 @@ class EstructuraUpdateSerializer(BaseSerializerAuditoria):
     mapeo_archivos = serializers.JSONField(required=False)
     nombre = serializers.CharField(required=False)
 
-    #def validate_mapeo(self, value):
-    #    """
-    #    Valida que el campo 'mapeo' sea una lista de objetos con 'nombre' y 'tipo'.
-    #    También verifica que 'tipo' esté dentro de ELASTICSEARCH_CAMPOS.
-    #    """
-    #    if not isinstance(value, list):
-    #        raise serializers.ValidationError("El campo 'mapeo' debe ser una lista de objetos.")
-    #
-    #    for item in value:
-    #        if not isinstance(item, dict):
-    #            raise serializers.ValidationError("Cada elemento de 'mapeo' debe ser un diccionario con 'nombre' y 'tipo'.")
-    #
-    #        if "nombre" not in item or "tipo" not in item:
-    #            raise serializers.ValidationError("Cada objeto en 'mapeo' debe contener 'nombre' y 'tipo'.")
-    #
-    #        if item["tipo"] not in ELASTICSEARCH_CAMPOS:
-    #            raise serializers.ValidationError(f"El tipo '{item['tipo']}' no es válido. Tipos permitidos: {list(ELASTICSEARCH_CAMPOS.keys())}")
-    #
-    #    return value
-
     def validate_mapeo(self, value):
         return self.validate_base_mapeo(value)
 
@@ -92,6 +72,8 @@ class EstructuraUpdateSerializer(BaseSerializerAuditoria):
         for item in value:
             if "nombre" not in item or "tipo" not in item:
                 raise serializers.ValidationError("Cada objeto debe contener 'nombre' y 'tipo'.")
+            if "valor_anterior" in item and not isinstance(item["valor_anterior"], str):
+                raise serializers.ValidationError("valor_anterior debe ser string")
             if item["tipo"] not in ELASTICSEARCH_CAMPOS:
                 raise serializers.ValidationError(f"Tipo inválido '{item['tipo']}'.")
         return value
