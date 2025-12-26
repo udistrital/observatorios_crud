@@ -10,14 +10,34 @@ class EstructuraCamposModelo(AuditoriaModelo):
     observatorio = ElasticCampo(str)
     nombre =  ElasticCampo(str)
     mapeo = ElasticCampo(list)
+    id_archivos = ElasticCampo(str)
+    mapeo_archivos = ElasticCampo(list)
 
     indice = ".estructuras"
 
     def crear(self, es, nombre_indice):
         
         registro =  super().crear(es, nombre_indice)
-        mapeo =  registro["mapeo"]
 
+        # --------------------------------------------------------------------
+        # 1️⃣ CREAR O ASIGNAR id_archivos
+        # --------------------------------------------------------------------
+        if not registro.get("id_archivos"):
+            nuevo_id_archivos = str(uuid.uuid4())   # Generamos un UUID único
+            registro["id_archivos"] = nuevo_id_archivos
+
+            # Guardar id_archivos dentro del documento principal
+            es.update(
+                index=nombre_indice,
+                id=registro["id"],
+                body={"doc": {"id_archivos": nuevo_id_archivos}}
+            )
+
+        # --------------------------------------------------------------------
+        # 2️⃣ CREAR ÍNDICE PARA MAPEO (DATOS)
+        # --------------------------------------------------------------------
+
+        mapeo =  registro["mapeo"]
         mapeo = self.obtener_mapeo(mapeo)
         mapeo["mappings"]["dynamic_templates"] = [
             {
@@ -47,12 +67,44 @@ class EstructuraCamposModelo(AuditoriaModelo):
             es.delete(index=nombre_indice, id=registro.get("id"))
             raise error
         
+        # --------------------------------------------------------------------
+        # 3️⃣ CREAR ÍNDICE PARA ARCHIVOS (MAPEO_ARCHIVOS)
+        # --------------------------------------------------------------------
+        mapeo_archivos = registro.get("mapeo_archivos", [])
+
+        if mapeo_archivos:
+
+            mapeo_arch = self.obtener_mapeo(mapeo_archivos)
+
+            id_arch = uuid.uuid5(uuid.NAMESPACE_DNS, registro["id_archivos"])
+
+            try:
+                es.indices.create(
+                    index=str(id_arch),
+                    body=mapeo_arch
+                )
+            except Exception as error:
+                # Rollback: elimina todo lo anterior si falla
+                es.indices.delete(index=str(id_unico), ignore=[404])
+                es.delete(index=nombre_indice, id=registro.get("id"))
+                raise error
+
         return registro
     
     @property
     def indice_id(self):
         id_unico = uuid.uuid5(uuid.NAMESPACE_DNS, str(self.id.obtener_valor()))
         return str(id_unico)
+
+    # ------------------------------------------------------------------------
+    # Propiedades del índice de archivos
+    # ------------------------------------------------------------------------
+    @property
+    def indice_id_archivos(self):
+        id_arch = self.id_archivos.obtener_valor()
+        if not id_arch or not isinstance(id_arch, str):
+            return None
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_arch))
 
     def __str__(self):
         return f"{self.nombre.obtener_valor()} - {self.id}"
@@ -119,11 +171,26 @@ class EstructuraCamposModelo(AuditoriaModelo):
             timeout = "10m",
         )
 
-    	
+    def normalizar_mapeo(self, mapeo):
+        """
+        Mantiene valor_anterior SOLO si viene del frontend.
+        """
+        resultado = []
+        for campo in mapeo:
+            nuevo = {
+                "nombre": campo["nombre"],
+                "tipo": campo["tipo"],
+            }
+            if "valor_anterior" in campo:
+                nuevo["valor_anterior"] = campo["valor_anterior"]
+            resultado.append(nuevo)
+        return resultado
+
 
     def actualizar(self, cliente, indice, item_id=None, datos=...):
 
         mapeo =  datos.get("mapeo")
+        mapeo_archivos = datos.get("mapeo_archivos")
 
         if mapeo:  
             campos_cambiados = self.obtener_campos_viejos(mapeo)
@@ -166,6 +233,56 @@ class EstructuraCamposModelo(AuditoriaModelo):
                     body = nuevo_mapeo["mappings"],
                 )
 
-        resultados_updates =  super().actualizar(cliente, indice, item_id, datos)
-        
-        return resultados_updates
+        if mapeo_archivos:
+            estructura = self.get(cliente, nombre_indice=indice, item_id=item_id)
+            index_arch_id = estructura.indice_id_archivos
+
+            # 🔹 Detectar renombres usando valor_anterior
+            campos_cambiados_arch = [
+                {
+                    "viejo": c["valor_anterior"],
+                    "nuevo": c["nombre"]
+                }
+                for c in mapeo_archivos
+                if c.get("valor_anterior") and c["valor_anterior"] != c["nombre"]
+            ]
+
+            # 🔹 SOLO mover datos, NO mapping
+            if campos_cambiados_arch:
+                painless_script_arch = ""
+                for campo in campos_cambiados_arch:
+                    old = campo["viejo"]
+                    new = campo["nuevo"]
+                    painless_script_arch += f"""
+                    if (ctx._source.containsKey('{old}')) {{
+                        ctx._source['{new}'] = ctx._source.remove('{old}');
+                    }}
+                    """
+
+                cliente.update_by_query(
+                    index=index_arch_id,
+                    body={
+                        "script": {
+                            "lang": "painless",
+                            "source": painless_script_arch,
+                        },
+                        "query": {"match_all": {}}
+                    },
+                    timeout="10m"
+                )
+
+        if "mapeo" in datos:
+            datos["mapeo"] = self.normalizar_mapeo(datos["mapeo"])
+
+        if "mapeo_archivos" in datos:
+            datos["mapeo_archivos"] = self.normalizar_mapeo(datos["mapeo_archivos"])
+
+
+        estructura_actualizada = super().actualizar(
+            cliente,
+            indice,
+            item_id,
+            datos
+        )
+
+        return estructura_actualizada
