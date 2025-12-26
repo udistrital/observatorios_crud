@@ -2,8 +2,12 @@ from apps.elasticsearch_utils.views import ElasticsearchViewSet
 from apps.elasticsearch_utils.utils import obtener_filtros_indice, convertir_django_ordering_a_elastic_ordering, get_elasticsearch_client
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
+
 from elasticsearch import helpers
 from .validadores import ValidadorColumnasNoExistentes
+from .models import ArchivoDatoModelo
+from apps.campos.models import EstructuraCamposModelo
 
 import csv
 import json
@@ -25,6 +29,11 @@ class CustomPagination(PageNumberPagination):
     page_size_query_param = 'page_size'  # Permite cambiar el tamaño con `?page_size=10`
     max_page_size = 10000  # Límite máximo permitido
 
+
+class DatosArchivoPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 10000
 
 class DatosViewSet(ElasticsearchViewSet):
 
@@ -277,3 +286,154 @@ class DatosViewSet(ElasticsearchViewSet):
             return Response(respuesta)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DatosArchivoViewSet(ElasticsearchViewSet):
+    elastic_model = ArchivoDatoModelo
+    pagination_class = DatosArchivoPagination
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+
+        self._id_archivos = kwargs.get("id_archivos")
+        cliente = self.get_elasticsearch_client()
+
+        resultado = cliente.search(
+            index=EstructuraCamposModelo.indice,
+            body={
+                "query": {
+                    "term": {
+                        "id_archivos.keyword": self._id_archivos
+                    }
+                }
+            }
+        )
+
+        # Si no existe esa estructura de archivos
+        if not resultado["hits"]["hits"]:
+            self._nombre_indice = None
+            self._mapeo_archivos = []
+            return
+
+        hit = resultado["hits"]["hits"][0]
+        estructura = EstructuraCamposModelo(**{
+            **hit["_source"],
+            "id": hit["_id"]
+        })
+
+        # Índice donde realmente viven los archivos
+        self._nombre_indice = estructura.indice_id_archivos
+        self._mapeo_archivos = estructura.mapeo_archivos.obtener_valor() or []
+
+
+    # ---------------------------------------------------------
+    # LIST — con paginación real como DatosViewSet
+    # ---------------------------------------------------------
+    def list(self, request, *args, **kwargs):
+
+        if not self._nombre_indice:
+            return Response({"error": "id_archivos no encontrado"}, status=404)
+
+        cliente = self.get_elasticsearch_client()
+        paginador = self.pagination_class()
+
+        resultado = cliente.search(
+            index=self._nombre_indice,
+            body={"query": {"match_all": {}}},
+            size=10000
+        )
+
+        documentos = []
+        for h in resultado["hits"]["hits"]:
+            fila = {"id": h["_id"]}
+
+            for campo in self._mapeo_archivos:
+                nombre = campo.get("nombre")
+                fila[nombre] = h["_source"].get(nombre)
+
+            documentos.append(fila)
+
+        resultados_paginados = paginador.paginate_queryset(documentos, request)
+
+        return paginador.get_paginated_response(resultados_paginados)
+
+
+    # ---------------------------------------------------------
+    # RETRIEVE
+    # ---------------------------------------------------------
+    def retrieve(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+
+        if not self._nombre_indice:
+            return Response({"error": "id_archivos no encontrado"}, status=404)
+
+        cliente = self.get_elasticsearch_client()
+
+        try:
+            resp = cliente.get(index=self._nombre_indice, id=pk)
+        except:
+            return Response({"error": "Documento no encontrado"}, status=404)
+
+        data = {"id": resp["_id"]}
+        for campo in self._mapeo_archivos:
+            nombre = campo["nombre"]
+            data[nombre] = resp["_source"].get(nombre)
+
+        return Response(data)
+
+
+    # ---------------------------------------------------------
+    # CREATE
+    # ---------------------------------------------------------
+    def create(self, request, *args, **kwargs):
+        if not self._nombre_indice:
+            return Response({"error": "id_archivos no encontrado"}, status=404)
+
+        cliente = self.get_elasticsearch_client()
+
+        nuevo_doc = {}
+        for campo in self._mapeo_archivos:
+            nombre = campo["nombre"]
+            nuevo_doc[nombre] = request.data.get(nombre)
+
+        resp = cliente.index(index=self._nombre_indice, document=nuevo_doc)
+        return Response(resp, status=201)
+
+
+    # ---------------------------------------------------------
+    # UPDATE
+    # ---------------------------------------------------------
+    def update(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+
+        if not self._nombre_indice:
+            return Response({"error": "id_archivos no encontrado"}, status=404)
+
+        cliente = self.get_elasticsearch_client()
+
+        payload = request.data
+        resp = cliente.update(
+            index=self._nombre_indice,
+            id=pk,
+            body={"doc": payload}
+        )
+
+        return Response(resp)
+
+
+    # ---------------------------------------------------------
+    # DELETE
+    # ---------------------------------------------------------
+    def destroy(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+
+        if not self._nombre_indice:
+            return Response({"error": "id_archivos no encontrado"}, status=404)
+
+        cliente = self.get_elasticsearch_client()
+
+        resp = cliente.delete(index=self._nombre_indice, id=pk)
+        return Response(resp, status=200)
+
+
+

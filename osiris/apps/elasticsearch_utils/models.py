@@ -177,14 +177,34 @@ class ModeloElasticSearch:
 
         return {**documento, "id": datos["_id"]}
 
+    #def _obtener_campos_elastic(self):
+    #    """Retorna los nombres de los campos de tipo ElasticCampo en la clase."""
+    #    return [
+    #        (nombre, getattr(self, nombre))  # Obtiene el valor real del atributo
+    #        for nombre in dir(self)
+    #        if isinstance(getattr(self, nombre), (ElasticCampo, ImagenCampo))
+    #    ]
+
     def _obtener_campos_elastic(self):
-        """Retorna los nombres de los campos de tipo ElasticCampo en la clase."""
-        return [
-            (nombre, getattr(self, nombre))  # Obtiene el valor real del atributo
-            for nombre in dir(self)
-            if isinstance(getattr(self, nombre), (ElasticCampo, ImagenCampo))
-        ]
-    
+        campos = []
+        for nombre in dir(self):
+            try:
+                valor = getattr(self, nombre)
+
+                # Ignorar métodos y propiedades no del modelo
+                if callable(valor):
+                    continue
+
+                # Solo aceptar ElasticCampo reales
+                if isinstance(valor, (ElasticCampo, ImagenCampo)):
+                    campos.append((nombre, valor))
+
+            except Exception:
+                # Evitar que propiedades como indice_id_archivos rompan
+                continue
+
+        return campos
+            
 
     def get(self, es, nombre_indice= indice, item_id=None):
         """
