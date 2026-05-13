@@ -62,6 +62,10 @@ INSTALLED_APPS = [
     'rest_framework',
     "corsheaders",
     'apps.observatorios',
+    'apps.factores',
+    "apps.caracteristicas",
+    "apps.aspectos",
+    "apps.estructuras",
     'apps.datos',
     'apps.campos',
     'apps.graficos'
@@ -187,6 +191,14 @@ base_path = f"/{PARAMETER_STORE_BASE}/observatorios_crud/db/"
 
 ES_USERNAME = get_ssm_parameter(base_path + "username")
 ES_PASSWORD = get_ssm_parameter(base_path + "password")
+
+print("======================================")
+print("✅ ELASTICSEARCH CONFIG")
+print("PARAMETER_STORE_BASE:", PARAMETER_STORE_BASE)
+print("BASE_PATH:", base_path)
+print("ES_USERNAME:", ES_USERNAME)
+print("ES_PASSWORD:", ES_PASSWORD)
+print("======================================")
 
 #ES_USERNAME = os.getenv("ELASTICSEARCH_USERNAME") 
 #ES_PASSWORD = os.getenv("ELASTICSEARCH_PASSWORD")

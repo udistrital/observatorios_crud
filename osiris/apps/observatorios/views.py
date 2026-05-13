@@ -53,7 +53,7 @@ class ObservatorioViewSet(ElasticsearchViewSet):
         observarotio = self.elastic_model().get(cliente, self._nombre_indice, item_id=pk)
         if not observarotio:
             return Response({"error": "No se encontró el observatorio"}, status=404)
-        return Response({ **observarotio.obtener_documento(imagen_en_base64=True), "id": pk })
+        return Response({ **observarotio.obtener_documento(imagen_en_base64=False), "id": pk })
     
     @swagger_auto_schema(
         operation_description="Obtiene un observatorio en especifico",
