@@ -21,7 +21,7 @@ class EstructuraViewSet(ViewSet):
         return get_elasticsearch_client()
 
     def generar_nombre_indice(self):
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(uuid.uuid4())))
+        return str(uuid.uuid4())
 
     def crear_indice_unico(self, cliente):
         for _ in range(5):
@@ -30,7 +30,6 @@ class EstructuraViewSet(ViewSet):
             try:
                 cliente.indices.create(index=nombre_indice)
                 return nombre_indice
-
             except Exception:
                 continue
 
@@ -58,6 +57,34 @@ class EstructuraViewSet(ViewSet):
             "nombre": data.get("nombre"),
             "activo": data.get("activo", True),
         }
+
+    def guardar_documento_estructura(self, cliente, estructura):
+        cliente.index(
+            index=estructura["id"],
+            id=estructura["id"],
+            document=estructura,
+            refresh=True
+        )
+
+    def obtener_documento_estructura(self, cliente, estructura_id):
+        respuesta = cliente.get(
+            index=estructura_id,
+            id=estructura_id
+        )
+
+        return respuesta["_source"]
+
+    def actualizar_documento_estructura(self, cliente, estructura_id, estructura):
+        cliente.update(
+            index=estructura_id,
+            id=estructura_id,
+            body={
+                "doc": estructura
+            },
+            refresh=True
+        )
+
+        return self.obtener_documento_estructura(cliente, estructura_id)
 
     def buscar_aspecto_por_estructura(self, cliente, estructura_id):
         try:
@@ -120,7 +147,6 @@ class EstructuraViewSet(ViewSet):
             return None
 
         estructuras = aspecto.get("estructuras_evidencias") or []
-
         estructura_normalizada = self.normalizar_estructura(estructura)
 
         estructuras_actualizadas = []
@@ -146,7 +172,8 @@ class EstructuraViewSet(ViewSet):
                 "doc": {
                     "estructuras_evidencias": estructuras_actualizadas
                 }
-            }
+            },
+            refresh=True
         )
 
         return estructuras_actualizadas
@@ -155,9 +182,9 @@ class EstructuraViewSet(ViewSet):
         self,
         cliente,
         estructura_id,
-        data
+        estructura
     ):
-        aspecto_id = data.get("aspecto_id")
+        aspecto_id = estructura.get("aspecto_id")
         aspecto = None
 
         if aspecto_id:
@@ -178,18 +205,9 @@ class EstructuraViewSet(ViewSet):
 
         for item in estructuras:
             if isinstance(item, dict) and item.get("id") == estructura_id:
-                estructura_actualizada = {
-                    **item,
-                    **data,
-                    "id": estructura_id,
-                }
-
-                estructura_actualizada.pop("aspecto_id", None)
-
                 estructuras_actualizadas.append(
-                    self.normalizar_estructura(estructura_actualizada)
+                    self.normalizar_estructura(estructura)
                 )
-
                 encontrada = True
             else:
                 estructuras_actualizadas.append(item)
@@ -204,7 +222,8 @@ class EstructuraViewSet(ViewSet):
                 "doc": {
                     "estructuras_evidencias": estructuras_actualizadas
                 }
-            }
+            },
+            refresh=True
         )
 
         return aspecto_id, estructuras_actualizadas
@@ -252,7 +271,8 @@ class EstructuraViewSet(ViewSet):
                 "doc": {
                     "estructuras_evidencias": estructuras_actualizadas
                 }
-            }
+            },
+            refresh=True
         )
 
         return aspecto_id, estructuras_actualizadas
@@ -327,32 +347,19 @@ class EstructuraViewSet(ViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            aspecto_id, aspecto = self.buscar_aspecto_por_estructura(
-                cliente,
-                pk
-            )
-
-            metadata = None
-
-            if aspecto:
-                estructuras = aspecto.get("estructuras_evidencias") or []
-
-                for estructura in estructuras:
-                    if (
-                        isinstance(estructura, dict)
-                        and estructura.get("id") == pk
-                    ):
-                        metadata = estructura
-                        break
+            estructura = self.obtener_documento_estructura(cliente, pk)
 
             return Response(
-                {
-                    "id": pk,
-                    "indice": pk,
-                    "aspecto_id": aspecto_id,
-                    "metadata": metadata,
-                },
+                estructura,
                 status=status.HTTP_200_OK
+            )
+
+        except NotFoundError:
+            return Response(
+                {
+                    "error": "No se encontró el documento de la estructura"
+                },
+                status=status.HTTP_404_NOT_FOUND
             )
 
         except Exception as error:
@@ -385,15 +392,22 @@ class EstructuraViewSet(ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        indice_id = None
+
         try:
             indice_id = self.crear_indice_unico(cliente)
 
             estructura = {
                 "id": indice_id,
+                "aspecto_id": aspecto_id,
                 "tipo_evidencia": data.get("tipo_evidencia"),
                 "nombre": data.get("nombre"),
                 "activo": data.get("activo", True),
+                "campos": data.get("campos", []),
+                "data": data.get("data", []),
             }
+
+            self.guardar_documento_estructura(cliente, estructura)
 
             estructuras_actualizadas = self.agregar_estructura_al_aspecto(
                 cliente,
@@ -401,10 +415,23 @@ class EstructuraViewSet(ViewSet):
                 estructura
             )
 
+            if estructuras_actualizadas is None:
+                cliente.indices.delete(index=indice_id, ignore=[404])
+
+                return Response(
+                    {
+                        "error": "No fue posible asociar la estructura al aspecto"
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
         except Exception as error:
+            if indice_id:
+                cliente.indices.delete(index=indice_id, ignore=[404])
+
             return Response(
                 {
-                    "error": "No fue posible crear el índice de la estructura",
+                    "error": "No fue posible crear la estructura",
                     "detalle": str(error)
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -426,8 +453,9 @@ class EstructuraViewSet(ViewSet):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
-
         cliente = self.get_elasticsearch_client()
+
+        campos_eliminados_data = data.pop("eliminar_data_campos", [])
 
         try:
             existe = cliente.indices.exists(index=pk)
@@ -440,10 +468,30 @@ class EstructuraViewSet(ViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
+            estructura_actual = self.obtener_documento_estructura(cliente, pk)
+
+            estructura_actualizada = {
+                **estructura_actual,
+                **data,
+                "id": pk,
+            }
+
+            if campos_eliminados_data:
+                estructura_actualizada["data"] = self.eliminar_campos_de_data(
+                    estructura_actualizada.get("data", []),
+                    campos_eliminados_data
+                )
+
+            self.actualizar_documento_estructura(
+                cliente,
+                pk,
+                estructura_actualizada
+            )
+
             aspecto_id, estructuras_actualizadas = self.actualizar_estructura_en_aspecto(
                 cliente,
                 pk,
-                data
+                estructura_actualizada
             )
 
             if estructuras_actualizadas is None:
@@ -456,11 +504,19 @@ class EstructuraViewSet(ViewSet):
 
             return Response(
                 {
-                    "id": pk,
+                    "estructura": estructura_actualizada,
                     "aspecto_id": aspecto_id,
                     "estructuras_evidencias": estructuras_actualizadas,
                 },
                 status=status.HTTP_200_OK
+            )
+
+        except NotFoundError:
+            return Response(
+                {
+                    "error": "No se encontró el documento de la estructura"
+                },
+                status=status.HTTP_404_NOT_FOUND
             )
 
         except Exception as error:
@@ -489,6 +545,19 @@ class EstructuraViewSet(ViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
+            estructura_actual = self.obtener_documento_estructura(cliente, pk)
+
+            estructura_actualizada = {
+                **estructura_actual,
+                "activo": False,
+            }
+
+            self.actualizar_documento_estructura(
+                cliente,
+                pk,
+                estructura_actualizada
+            )
+
             aspecto_id, estructuras_actualizadas = self.desactivar_estructura_en_aspecto(
                 cliente,
                 pk
@@ -505,11 +574,20 @@ class EstructuraViewSet(ViewSet):
             return Response(
                 {
                     "message": "Estructura desactivada correctamente",
+                    "estructura": estructura_actualizada,
                     "id": pk,
                     "aspecto_id": aspecto_id,
                     "estructuras_evidencias": estructuras_actualizadas,
                 },
                 status=status.HTTP_200_OK
+            )
+
+        except NotFoundError:
+            return Response(
+                {
+                    "error": "No se encontró el documento de la estructura"
+                },
+                status=status.HTTP_404_NOT_FOUND
             )
 
         except Exception as error:
@@ -520,3 +598,27 @@ class EstructuraViewSet(ViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def eliminar_campos_de_data(self, data, campos_eliminados):
+        if not isinstance(data, list):
+            return []
+
+        if not campos_eliminados:
+            return data
+
+        resultado = []
+
+        for fila in data:
+            if not isinstance(fila, dict):
+                resultado.append(fila)
+                continue
+
+            nueva_fila = {
+                clave: valor
+                for clave, valor in fila.items()
+                if clave not in campos_eliminados
+            }
+
+            resultado.append(nueva_fila)
+
+        return resultado
