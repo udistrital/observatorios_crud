@@ -1,334 +1,495 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from elasticsearch import NotFoundError
 from rest_framework import status
-from rest_framework.decorators import action
-from elasticsearch import Elasticsearch, helpers
-import pandas as pd
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.viewsets import ViewSet
 
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-
-### Modulos Externos ###
-from apps.elasticsearch_utils.views import ElasticsearchViewSet
 from apps.elasticsearch_utils.utils import get_elasticsearch_client
-from apps.utils.utils import ProcesadorRecursos
 
-### Modulos Internos ###
-from .utils import ELASTICSEARCH_CAMPOS
 from .models import EstructuraCamposModelo
 from .serializers import EstructuraSerializer, EstructuraUpdateSerializer
-
-class EstructuraCamposViewSet(ElasticsearchViewSet): 
-    elastic_model = EstructuraCamposModelo
-    procesador = ProcesadorRecursos()
-    cliente =  get_elasticsearch_client()
-
-    clase_serializador = EstructuraSerializer
-
-    def obtener_clase_serializador(self):
-        if self.action == "update":
-            return EstructuraUpdateSerializer
-        
-        return super().obtener_clase_serializador()
-
-    def obtener_busqueda(self, *args, **kwargs):
-        busqueda =  {
-            "size": 10000,
-            "query": {
-                "bool": {
-                    "must": [
-                    ]
-                }
-            }
-        }
-    
-
-        if "observatorio" in kwargs and kwargs.get("observatorio") is not None:
-            busqueda["query"]["bool"]["must"].append(
-                    {
-                        "term" : {"observatorio.keyword" :kwargs.get("observatorio") }
-                    }
-                )
-
-        return busqueda
-
-    def initial(self, request, *args, **kwargs):
-        super().initial(request, *args, **kwargs)
-        self._nombre_indice = self.elastic_model.obtener_indice()
-
-        if not self.cliente.indices.exists(index=self._nombre_indice):  
-            self.cliente.indices.create(index=self._nombre_indice)
-
-    
-    @swagger_auto_schema(
-        operation_description="Crea una nueva estructura de campos",
-        request_body=EstructuraSerializer,
-        responses={
-            201: EstructuraSerializer,
-            400: openapi.Response(description="Solicitud inválida"),
-        },
-        tags=["Estructura de campos"]
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-    
-
-    @swagger_auto_schema(
-        operation_description="Obtiene una estructura de campos",
-        responses={
-            201: EstructuraSerializer,
-            400: openapi.Response(description="Solicitud inválida"),
-        },
-        tags=["Estructura de campos"]
-    )
-    def retrieve(self, request, pk=None, *args, **kwargs):
-        return super().retrieve(request, pk, *args, **kwargs)
-    
-    @swagger_auto_schema(
-        operation_description="Obtiene una estructura en especifico",
-        responses={
-            201: EstructuraSerializer(many = True),
-            400: openapi.Response(description="Solicitud inválida"),
-        },
-        tags=["Estructura de campos"]
-    )
-    def list(self, request, *args, **kwargs):
-        observatorio = request.query_params.get("observatorio")
-        cliente = self.get_elasticsearch_client()
-        
-        resultado_busqueda = cliente.search(
-            index=self._nombre_indice,  #TODO manejar los índices con base en la sesión
-            body=self.obtener_busqueda( observatorio =  observatorio)
-        )
-
-        for item in resultado_busqueda["hits"]["hits"]:
-            for campo in item["_source"]["mapeo"]:
-                if "valor_anterior" not in campo:
-                    campo["valor_anterior"] = campo.get("nombre")
-
-            for campo in item["_source"].get("mapeo_archivos", []):
-                if "valor_anterior" not in campo:
-                    campo["valor_anterior"] = campo.get("nombre")
-
-        resultados = [ 
-            self.elastic_model(**{**item["_source"], "id": item["_id"]}).obtener_documento( imagen_en_base64 = True )      
-            for item in resultado_busqueda['hits']['hits']
-        ]
-
-        return Response(resultados)
-    
-    @swagger_auto_schema(
-        operation_description="Inactiva una estructura de campos",
-        request_body=EstructuraSerializer,
-        responses={
-            201: {},
-            400: openapi.Response(description="Solicitud inválida"),
-        },
-        tags=["Estructura de campos"]
-    )
-    def destroy(self, request, pk=None, *args, **kwargs):
-        return super().destroy(request, pk, *args, **kwargs)
-    
-    @swagger_auto_schema(
-        operation_description="Actualiza una estructura de campos",
-        request_body=EstructuraSerializer,
-        responses={
-            201: EstructuraSerializer,
-            400: openapi.Response(description="Solicitud inválida"),
-        },
-        tags=["Estructura de campos"]
-    )
-    def update(self, request, pk=None, *args, **kwargs):
-        return super().update(request, pk, *args, **kwargs)
-
-class ArchivosDatosView(APIView):
-
-    @swagger_auto_schema(
-        operation_description="Obtiene los datos asociados al mapeo_archivos de una estructura",
-        responses={200: openapi.Response("Datos de archivos obtenidos correctamente")},
-        tags=["Estructura de campos"]
-    )
-    def get(self, request, pk, *args, **kwargs):
-
-        cliente = get_elasticsearch_client()
-
-        # 1. Buscar estructura por id_archivos (NO por su _id)
-        resultado = cliente.search(
-            index=EstructuraCamposModelo.indice,
-            body={
-                "query": {
-                    "term": {
-                        "id_archivos.keyword": pk
-                    }
-                }
-            }
-        )
-
-        if not resultado["hits"]["hits"]:
-            return Response(
-                {"detalle": "No existe estructura con ese id_archivos."},
-                status=404
-            )
-
-        hit = resultado["hits"]["hits"][0]
-        estructura = EstructuraCamposModelo(**{**hit["_source"], "id": hit["_id"]})
-
-        # 2. Obtener mapeo_archivos
-        mapeo_archivos = estructura.mapeo_archivos.obtener_valor() or []
-
-        if not mapeo_archivos:
-            return Response(
-                {"detalle": "La estructura no tiene mapeo_archivos definido"},
-                status=200
-            )
-
-        # 3. Consultar documentos del índice de archivos
-        index_archivos = estructura.indice_id_archivos
-
-        resultado_archivos = cliente.search(
-            index=index_archivos,
-            body={"query": {"match_all": {}}},
-            size=10000
-        )
-
-        documentos = []
-
-        for h in resultado_archivos["hits"]["hits"]:
-            doc = h["_source"]
-            fila = {"id": h["_id"]}  # IMPORTANTE: agregar id al registro
-
-            for campo in mapeo_archivos:
-                nombre = campo.get("nombre")
-                fila[nombre] = doc.get(nombre)
-
-            documentos.append(fila)
-
-        # ===========================
-        # PAGINACIÓN MANUAL
-        # ===========================
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 10))
-
-        total = len(documentos)
-        inicio = (page - 1) * page_size
-        fin = inicio + page_size
-
-        paginados = documentos[inicio:fin]
-
-        next_page = None
-        previous_page = None
-
-        if fin < total:
-            next_page = page + 1
-
-        if inicio > 0:
-            previous_page = page - 1
-
-        return Response({
-            "count": total,
-            "next": next_page,
-            "previous": previous_page,
-            "results": paginados
-        }, status=200)
-
-
-    def post(self, request, pk, *args, **kwargs):
-        cliente = get_elasticsearch_client()
-
-        # 1. Buscar estructura por id_archivos (NO por su _id)
-        resultado = cliente.search(
-            index=EstructuraCamposModelo.indice,
-            body={
-                "query": {
-                    "term": {
-                        "id_archivos.keyword": pk
-                    }
-                }
-            }
-        )
-
-        if not resultado["hits"]["hits"]:
-            return Response(
-                {"detalle": "No existe estructura con ese id_archivos."},
-                status=404
-            )
-
-        hit = resultado["hits"]["hits"][0]
-        estructura = EstructuraCamposModelo(**{**hit["_source"], "id": hit["_id"]})
-
-        # 2. Obtener índice donde se guardan los archivos
-        index_archivos = estructura.indice_id_archivos
-
-        # 3. Obtener mapeo_archivos
-        mapeo_archivos = estructura.mapeo_archivos.obtener_valor() or []
-
-        # 4. Construir documento desde los campos
-        nuevo_doc = {}
-
-        for campo in mapeo_archivos:
-            nombre = campo.get("nombre")
-            nuevo_doc[nombre] = request.data.get(nombre)
-
-        # 5. Insertar documento en Elasticsearch
-        resp = cliente.index(index=index_archivos, document=nuevo_doc)
-
-        return Response(resp, status=status.HTTP_201_CREATED)
-
-    def delete(self, request, pk, id_documento=None, *args, **kwargs):
-        cliente = get_elasticsearch_client()
-
-        # 1. Buscar estructura según id_archivos = pk
-        resultado = cliente.search(
-            index=EstructuraCamposModelo.indice,
-            body={
-                "query": {
-                    "term": {
-                        "id_archivos.keyword": pk
-                    }
-                }
-            }
-        )
-
-        if not resultado["hits"]["hits"]:
-            return Response(
-                {"detalle": "No existe estructura con ese id_archivos."},
-                status=404
-            )
-
-        hit = resultado["hits"]["hits"][0]
-        estructura = EstructuraCamposModelo(**{**hit["_source"], "id": hit["_id"]})
-
-        # 2. Obtener índice donde viven los archivos
-        index_archivos = estructura.indice_id_archivos
-
-        # 3. Eliminar el documento en Elasticsearch
-        try:
-            resp = cliente.delete(
-                index=index_archivos,
-                id=id_documento
-            )
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
-
-        # 4. Respuesta idéntica al DELETE de /datos/
-        return Response(resp, status=200)
+from .utils import (
+    aplicar_filtros,
+    aplicar_ordenamiento,
+    eliminar_campos_de_data,
+    obtener_tipos_campos,
+    paginar_resultados,
+    validar_registro_con_campos,
+)
 
 
 class TiposCamposVista(APIView):
-    @swagger_auto_schema(
-        operation_summary="Obtener los campos de Elasticsearch",
-        operation_description="Devuelve un diccionario con los tipos de campos utilizados en Elasticsearch.",
-        responses={200: openapi.Response(
-            description="Lista de tipos de campos en Elasticsearch",
-            examples={
-                "application/json": ELASTICSEARCH_CAMPOS
-            }
-        )},
-        tags=["Estructura de campos"]
-    )
+    def get(self, request, *args, **kwargs):
+        return Response(
+            obtener_tipos_campos(),
+            status=status.HTTP_200_OK
+        )
 
-    def get(self, request, *args, **kwargs):          
-          return Response(ELASTICSEARCH_CAMPOS, status=status.HTTP_200_OK)
-     
-    
+
+class EstructuraCamposViewSet(ViewSet):
+    """
+    ViewSet para consultar o actualizar los campos y la data de una estructura.
+
+    No crea estructuras nuevas. La creación inicial se realiza desde apps.estructuras.
+
+    Documento esperado:
+
+    {
+        "id": "...",
+        "aspecto_id": "...",
+        "tipo_evidencia": "Tabla",
+        "nombre": "tabla prueba",
+        "activo": true,
+        "campos": [],
+        "data": []
+    }
+    """
+
+    def get_elasticsearch_client(self):
+        return get_elasticsearch_client()
+
+    def list(self, request, *args, **kwargs):
+        return Response(
+            {
+                "detalle": (
+                    "Debe consultar una estructura específica usando "
+                    "/campos/estructuras/<id_estructura>/"
+                )
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {
+                "detalle": (
+                    "La creación de estructuras se realiza desde "
+                    "apps.estructuras. Este endpoint solo actualiza campos y data."
+                )
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
+
+        try:
+            if not EstructuraCamposModelo.existe(cliente, pk):
+                return Response(
+                    {"detalle": "No existe la estructura."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            estructura = EstructuraCamposModelo.obtener(cliente, pk)
+
+            return Response(
+                estructura,
+                status=status.HTTP_200_OK
+            )
+
+        except NotFoundError:
+            return Response(
+                {"detalle": "No existe el documento de la estructura."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        except Exception as error:
+            return Response(
+                {
+                    "detalle": "No fue posible consultar la estructura.",
+                    "error": str(error),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def validar_remocion_campos(self, estructura_actual, datos, campos_eliminados_data):
+        if "campos" not in datos:
+            return
+
+        campos_actuales = estructura_actual.get("campos", [])
+        campos_nuevos = datos.get("campos", [])
+
+        nombres_actuales = {
+            campo.get("nombre_campo")
+            for campo in campos_actuales
+            if campo.get("nombre_campo")
+        }
+
+        nombres_nuevos = {
+            campo.get("nombre_campo")
+            for campo in campos_nuevos
+            if campo.get("nombre_campo")
+        }
+
+        campos_removidos = nombres_actuales - nombres_nuevos
+
+        if not campos_removidos:
+            return
+
+        campos_sin_confirmacion = [
+            campo
+            for campo in campos_removidos
+            if campo not in campos_eliminados_data
+        ]
+
+        if not campos_sin_confirmacion:
+            return
+
+        data = estructura_actual.get("data", [])
+
+        for fila in data:
+            if not isinstance(fila, dict):
+                continue
+
+            for campo in campos_sin_confirmacion:
+                if campo in fila:
+                    raise ValueError(
+                        {
+                            campo: (
+                                "El campo tiene información registrada. "
+                                "Para quitarlo debe enviarlo en eliminar_data_campos "
+                                "o conservarlo en campos."
+                            )
+                        }
+                    )
+
+    def update(self, request, pk=None, *args, **kwargs):
+        serializer = EstructuraUpdateSerializer(
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+
+        datos = serializer.validated_data
+        cliente = self.get_elasticsearch_client()
+
+        campos_eliminados_data = datos.pop("eliminar_data_campos", [])
+
+        try:
+            if not EstructuraCamposModelo.existe(cliente, pk):
+                return Response(
+                    {"detalle": "No existe la estructura."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            estructura_actual = EstructuraCamposModelo.obtener(cliente, pk)
+
+            try:
+                self.validar_remocion_campos(
+                    estructura_actual,
+                    datos,
+                    campos_eliminados_data
+                )
+            except ValueError as error:
+                return Response(
+                    {"detalle": error.args[0]},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            estructura_actualizada = {
+                **estructura_actual,
+                **datos,
+                "id": pk,
+            }
+
+            if campos_eliminados_data:
+                estructura_actualizada["data"] = eliminar_campos_de_data(
+                    estructura_actualizada.get("data", []),
+                    campos_eliminados_data
+                )
+
+            EstructuraCamposModelo.guardar(
+                cliente,
+                pk,
+                estructura_actualizada
+            )
+
+            return Response(
+                estructura_actualizada,
+                status=status.HTTP_200_OK
+            )
+
+        except NotFoundError:
+            return Response(
+                {"detalle": "No existe el documento de la estructura."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        except Exception as error:
+            return Response(
+                {
+                    "detalle": "No fue posible actualizar la estructura.",
+                    "error": str(error),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def partial_update(self, request, pk=None, *args, **kwargs):
+        return self.update(request, pk, *args, **kwargs)
+
+    def destroy(self, request, pk=None, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
+
+        try:
+            if not EstructuraCamposModelo.existe(cliente, pk):
+                return Response(
+                    {"detalle": "No existe la estructura."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            estructura = EstructuraCamposModelo.obtener(cliente, pk)
+
+            estructura["campos"] = []
+            estructura["data"] = []
+
+            EstructuraCamposModelo.guardar(cliente, pk, estructura)
+
+            return Response(
+                {
+                    "detalle": "Campos y data eliminados correctamente.",
+                    "estructura": estructura,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as error:
+            return Response(
+                {
+                    "detalle": "No fue posible limpiar la estructura.",
+                    "error": str(error),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class DatosEstructuraDocumentoView(APIView):
+    """
+    Maneja la data guardada dentro del documento de la estructura.
+
+    GET    /campos/datos/<id_estructura>/
+    POST   /campos/datos/<id_estructura>/
+    PUT    /campos/datos/<id_estructura>/<id_registro>/
+    DELETE /campos/datos/<id_estructura>/<id_registro>/
+    DELETE /campos/datos/<id_estructura>/
+    """
+
+    def get_elasticsearch_client(self):
+        return get_elasticsearch_client()
+
+    def obtener_estructura(self, cliente, estructura_id):
+        return EstructuraCamposModelo.obtener(cliente, estructura_id)
+
+    def guardar_estructura(self, cliente, estructura_id, estructura):
+        return EstructuraCamposModelo.guardar(
+            cliente,
+            estructura_id,
+            estructura
+        )
+
+    def get(self, request, pk, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
+
+        try:
+            estructura = self.obtener_estructura(cliente, pk)
+        except Exception:
+            return Response(
+                {"detalle": "No existe la estructura."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        data = estructura.get("data", [])
+
+        if not isinstance(data, list):
+            data = []
+
+        filas = []
+
+        for index, item in enumerate(data):
+            if isinstance(item, dict):
+                filas.append(
+                    {
+                        "id": str(index),
+                        **item,
+                    }
+                )
+
+        filas = aplicar_filtros(filas, request.GET)
+        filas = aplicar_ordenamiento(
+            filas,
+            request.GET.get("ordering")
+        )
+
+        try:
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
+        except Exception:
+            page = 1
+            page_size = 10
+
+        return Response(
+            paginar_resultados(filas, page, page_size),
+            status=status.HTTP_200_OK
+        )
+
+    def post(self, request, pk, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
+
+        try:
+            estructura = self.obtener_estructura(cliente, pk)
+        except Exception:
+            return Response(
+                {"detalle": "No existe la estructura."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        campos = estructura.get("campos", [])
+
+        if not campos:
+            return Response(
+                {"detalle": "La estructura no tiene campos configurados."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            nuevo_registro = validar_registro_con_campos(
+                campos,
+                request.data
+            )
+        except ValueError as error:
+            return Response(
+                {"detalle": error.args[0]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        data = estructura.get("data", [])
+
+        if not isinstance(data, list):
+            data = []
+
+        data.append(nuevo_registro)
+
+        estructura["data"] = data
+
+        self.guardar_estructura(cliente, pk, estructura)
+
+        return Response(
+            nuevo_registro,
+            status=status.HTTP_201_CREATED
+        )
+
+    def put(self, request, pk, id_documento=None, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
+
+        if id_documento is None:
+            return Response(
+                {"detalle": "Debe enviar el identificador del registro."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            estructura = self.obtener_estructura(cliente, pk)
+        except Exception:
+            return Response(
+                {"detalle": "No existe la estructura."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        data = estructura.get("data", [])
+
+        if not isinstance(data, list):
+            data = []
+
+        try:
+            index_registro = int(id_documento)
+        except Exception:
+            return Response(
+                {"detalle": "El identificador del registro debe ser numérico."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if index_registro < 0 or index_registro >= len(data):
+            return Response(
+                {"detalle": "No existe el registro."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            registro_actualizado = validar_registro_con_campos(
+                estructura.get("campos", []),
+                request.data
+            )
+        except ValueError as error:
+            return Response(
+                {"detalle": error.args[0]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        data[index_registro] = registro_actualizado
+        estructura["data"] = data
+
+        self.guardar_estructura(cliente, pk, estructura)
+
+        return Response(
+            registro_actualizado,
+            status=status.HTTP_200_OK
+        )
+
+    def delete(self, request, pk, id_documento=None, *args, **kwargs):
+        cliente = self.get_elasticsearch_client()
+
+        try:
+            estructura = self.obtener_estructura(cliente, pk)
+        except Exception:
+            return Response(
+                {"detalle": "No existe la estructura."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        data = estructura.get("data", [])
+
+        if not isinstance(data, list):
+            data = []
+
+        if id_documento is None:
+            estructura["data"] = []
+
+            self.guardar_estructura(cliente, pk, estructura)
+
+            return Response(
+                {"detalle": "Todos los registros fueron eliminados."},
+                status=status.HTTP_200_OK
+            )
+
+        try:
+            index_registro = int(id_documento)
+        except Exception:
+            return Response(
+                {"detalle": "El identificador del registro debe ser numérico."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if index_registro < 0 or index_registro >= len(data):
+            return Response(
+                {"detalle": "No existe el registro."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        data.pop(index_registro)
+
+        estructura["data"] = data
+
+        self.guardar_estructura(cliente, pk, estructura)
+
+        return Response(
+            {"detalle": "Registro eliminado correctamente."},
+            status=status.HTTP_200_OK
+        )
+
+
+class ArchivosDatosView(DatosEstructuraDocumentoView):
+    """
+    Se conserva la clase para no romper imports/rutas existentes.
+
+    En el nuevo contrato no se maneja mapeo_archivos.
+    Si el cliente consume /archivos/, se comporta igual que /datos/.
+    """
