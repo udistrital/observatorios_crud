@@ -1,11 +1,11 @@
 import uuid
+import re
 
 from elasticsearch import NotFoundError
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from osiris.settings import ELASTICSEARCH_MAIN_INDEX
 from apps.elasticsearch_utils.utils import get_elasticsearch_client
 
 from .serializers import (
@@ -15,17 +15,40 @@ from .serializers import (
 
 
 class EstructuraViewSet(ViewSet):
-    indice_aspectos = ELASTICSEARCH_MAIN_INDEX + "_aspectos"
+    indice_aspectos = "atlas_aspectos"
+    prefijo_aplicacion = "atlas"
+    contexto_indice = "estructura"
 
     def get_elasticsearch_client(self):
         return get_elasticsearch_client()
 
     def generar_nombre_indice(self):
-        return str(uuid.uuid4())
+        uid = str(uuid.uuid4())
+        return f"{self.prefijo_aplicacion}_{self.contexto_indice}_{uid}"
 
-    def crear_indice_unico(self, cliente):
+    def normalizar_segmento_indice(self, valor):
+        if not valor:
+            return "sin_tipo"
+
+        segmento = str(valor).strip().lower().replace(" ", "_")
+        segmento = re.sub(r"[^a-z0-9_-]", "", segmento)
+
+        if not segmento:
+            return "sin_tipo"
+
+        return segmento
+
+    def crear_indice_unico(self, cliente, tipo_evidencia=None):
+        tipo_evidencia_normalizado = self.normalizar_segmento_indice(tipo_evidencia)
+
         for _ in range(5):
-            nombre_indice = self.generar_nombre_indice()
+            uid = str(uuid.uuid4())
+            nombre_indice = (
+                f"{self.prefijo_aplicacion}_"
+                f"{self.contexto_indice}_"
+                f"{tipo_evidencia_normalizado}_"
+                f"{uid}"
+            )
 
             try:
                 cliente.indices.create(index=nombre_indice)
@@ -395,7 +418,10 @@ class EstructuraViewSet(ViewSet):
         indice_id = None
 
         try:
-            indice_id = self.crear_indice_unico(cliente)
+            indice_id = self.crear_indice_unico(
+                cliente,
+                data.get("tipo_evidencia")
+            )
 
             estructura = {
                 "id": indice_id,

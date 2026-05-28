@@ -3,15 +3,14 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from osiris.settings import ELASTICSEARCH_MAIN_INDEX
 from apps.elasticsearch_utils.utils import get_elasticsearch_client
 
 from .serializers import AspectoSerializer, AspectoUpdateSerializer
 
 
 class AspectoViewSet(ViewSet):
-    nombre_indice = ELASTICSEARCH_MAIN_INDEX + "_aspectos"
-    indice_caracteristicas = ELASTICSEARCH_MAIN_INDEX + "_caracteristicas"
+    nombre_indice = "atlas_aspectos"
+    indice_caracteristicas = "atlas_caracteristicas"
 
     def get_elasticsearch_client(self):
         return get_elasticsearch_client()

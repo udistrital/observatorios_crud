@@ -3,7 +3,6 @@ from apps.elasticsearch_utils.views import ElasticsearchViewSet
 from .serializers import ObservatorioSerializer, ObservatorioUPdateSerializer
 from .models import ObservatorioModelo
 
-from osiris.settings import ELASTICSEARCH_MAIN_INDEX
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.response import Response
@@ -20,7 +19,7 @@ class ObservatorioViewSet(ElasticsearchViewSet):
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        self._nombre_indice = ELASTICSEARCH_MAIN_INDEX + "_observatorios"
+        self._nombre_indice = "atlas_observatorios"
 
     @swagger_auto_schema(
         operation_description="Crea un nuevo observatorio",

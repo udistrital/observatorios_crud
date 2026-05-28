@@ -2,7 +2,6 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from osiris.settings import ELASTICSEARCH_MAIN_INDEX
 from apps.elasticsearch_utils.utils import get_elasticsearch_client
 
 from .serializers import (
@@ -12,8 +11,8 @@ from .serializers import (
 
 
 class CaracteristicaViewSet(ViewSet):
-    nombre_indice = ELASTICSEARCH_MAIN_INDEX + "_caracteristicas"
-    indice_factores = ELASTICSEARCH_MAIN_INDEX + "_factores"
+    nombre_indice = "atlas_caracteristicas"
+    indice_factores = "atlas_factores"
 
     def get_elasticsearch_client(self):
         return get_elasticsearch_client()

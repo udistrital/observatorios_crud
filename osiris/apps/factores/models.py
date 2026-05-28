@@ -1,8 +1,5 @@
 from apps.elasticsearch_utils.models import ElasticCampo
 from apps.elasticsearch_utils.models import AuditoriaModelo
-from osiris.settings import ELASTICSEARCH_MAIN_INDEX
-
-
 class FactorModelo(AuditoriaModelo):
     nombre = ElasticCampo(str)
     descripcion = ElasticCampo(str)
@@ -10,4 +7,4 @@ class FactorModelo(AuditoriaModelo):
     activo = ElasticCampo(bool)
     caracteristicas = ElasticCampo(list)
 
-    indice = ELASTICSEARCH_MAIN_INDEX + "_factores"
+    indice = "atlas_factores"
