@@ -1,7 +1,6 @@
 from django.db import models
 from apps.elasticsearch_utils.models import AuditoriaModelo, ElasticCampo
 # Create your models here
-from osiris.settings import ELASTICSEARCH_MAIN_INDEX
 import uuid
 
 class Dashboard(AuditoriaModelo):
@@ -10,7 +9,9 @@ class Dashboard(AuditoriaModelo):
     observatorio = ElasticCampo(str)
     columnas =  ElasticCampo(int)
 
-    indice =  "." + ELASTICSEARCH_MAIN_INDEX + "_dashboards"
+    indice = "atlas_dashboards"
+    prefijo_aplicacion = "atlas"
+    contexto_indice = "dashboard"
 
 
     def crear(self, es, nombre_indice):
@@ -18,10 +19,13 @@ class Dashboard(AuditoriaModelo):
         registro =  super().crear(es, nombre_indice)
 
         id_unico = uuid.uuid5(uuid.NAMESPACE_DNS, str(registro.get("id")))
+        nombre_indice_dashboard = (
+            f"{self.prefijo_aplicacion}_{self.contexto_indice}_{id_unico}"
+        )
 
         try:
             es.indices.create(
-                index=id_unico
+                index=nombre_indice_dashboard
             )
         except Exception as error:
             es.delete(index=nombre_indice, id=registro.get("id"))
@@ -31,7 +35,7 @@ class Dashboard(AuditoriaModelo):
     @property
     def indice_id(self):
         id_unico = uuid.uuid5(uuid.NAMESPACE_DNS, str(self.id.obtener_valor()))
-        return str(id_unico)
+        return f"{self.prefijo_aplicacion}_{self.contexto_indice}_{id_unico}"
 
 class Grafico(AuditoriaModelo):
     nombre = ElasticCampo(str)
