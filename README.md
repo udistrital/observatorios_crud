@@ -1,7 +1,12 @@
 
-# Proyecto Observatorios
+# Proyecto Observatorios CRUD
 
-Este proyecto es un sistema de gestión para el manejo de datos de observatorios, implementando operaciones CRUD y la integración con Elasticsearch para la búsqueda avanzada y eficiente de datos. Además, se incluye la implementación de medidas de seguridad para proteger los recursos del sistema.
+## Punto de entrada técnico
+- `AGENTS.md`
+- `docs/README.md`
+- `docs/specs/README.md`
+
+Backend CRUD del dominio Observatorios, implementado en Django/DRF, con integracion a Elasticsearch.
 
 ## Especificaciones Técnicas
 
@@ -13,68 +18,142 @@ Este proyecto es un sistema de gestión para el manejo de datos de observatorios
 - [Docker](https://www.docker.com/): Para contenerizar la aplicación.
 - [Docker Compose](https://docs.docker.com/compose/): Para orquestar contenedores y facilitar la configuración de la base de datos y otros servicios.
 
-### Variables de Entorno
+### Variables de entorno
 
-El proyecto utiliza las siguientes variables de entorno, que deben ser configuradas en el archivo `settings.py` o en un archivo `.env`:
+La API usa un unico archivo `osiris/.env` y selecciona comportamiento por la presencia de `PARAMETER_STORE` (local si está vacío, SSM si está definido):
 
-```
-DJANGO_SECRET_KEY=[clave secreta de Django]
-ELASTICSEARCH_HOST=[host de Elasticsearch]
-ELASTICSEARCH_PORT=[puerto de Elasticsearch]
-DEBUG=[True o False, habilitar/deshabilitar depuración]
-```
+- Local (sin PARAMETER_STORE): usa credenciales de Elasticsearch desde `.env`.
+- Remoto (con PARAMETER_STORE): usa credenciales desde AWS SSM.
+
+Plantilla base: `osiris/.env.template`.
 
 
 ### Requisitos
 
-- **Python 3.x**
-- **Django 3.x+**
-- **Django Rest Framework 3.x+**
-- **Elasticsearch 7.x+**
-- **Docker (opcional, para contenedores)**
+- **Docker**
+- **Docker Compose**
+- (Opcional) acceso SSH si usaras tunel a Elasticsearch remoto
 
-## Instalación
+## Ejecucion local
 
-### 1. Clonar el repositorio
+### 1. Ubicarse en el proyecto
 
 Clona el repositorio del proyecto:
 
 ```bash
-https://github.com/udistrital/observatorios_crud.git
-cd observatorios
+cd observatorios_crud
 ```
 
-### 2. Crear un entorno virtual
+### 2. Configurar `.env`
 
-Es recomendable crear un entorno virtual para gestionar las dependencias del proyecto.
+Crear archivo desde plantilla:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # En Windows usa venv\Scripts\ctivate
+cp osiris/.env.template osiris/.env
 ```
 
-### 3. Instalar dependencias
+Editar `osiris/.env` segun tu escenario.
 
-Instalar las dependencias necesarias utilizando `pip`:
+Variables minimas (local):
+
+```env
+DEBUG=true
+SECRET_KEY=tu_clave
+ALLOWED_HOSTS=localhost,127.0.0.1
+ELASTICSEARCH_HOST=host.docker.internal
+ELASTICSEARCH_PORT=9200
+ELASTICSEARCH_MAIN_INDEX=
+ELASTICSEARCH_USERNAME=
+ELASTICSEARCH_PASSWORD=
+```
+
+### 3. Levantar solo API CRUD
+
+Script recomendado:
 
 ```bash
-pip install -r requirements.txt
+./run_crud.sh
 ```
 
-### 4. Configurar las variables de entorno
+Esto construye/levanta el contenedor `osiris_back` en `http://localhost:8000`.
 
-Crea un archivo `.env` en la raíz del proyecto y agrega las variables de entorno necesarias. También puedes configurarlas directamente en el archivo `settings.py` si prefieres no usar un archivo `.env`.
-
-
-### 5. Iniciar el servidor
-
-Inicia el servidor de desarrollo de Django:
+Verifica estado:
 
 ```bash
-python manage.py runserver
+docker ps --filter name=osiris_back
 ```
 
-El servidor estará disponible en `http://127.0.0.1:8000/`.
+### 4. (Opcional) Levantar infraestructura local
+
+Si necesitas Elasticsearch/Kibana/Nginx local:
+
+```bash
+./infraestructura/run_infra.sh
+```
+
+Servicios esperados:
+
+- Elasticsearch: `http://localhost:9200`
+- Kibana: `http://localhost:5601`
+- Nginx: `http://localhost:80`
+
+
+### 5. (Opcional) Usar Elasticsearch remoto por tunel SSH
+
+Abrir tunel en otra terminal:
+
+```bash
+ssh -i llave.pem -L 0.0.0.0:9200:localhost:9200 {user}@{host}
+```
+
+Con ese tunel, la API local puede consumir Elasticsearch via `host.docker.internal:9200`.
+
+### 6. Detener servicios
+
+- Detener API CRUD:
+
+```bash
+docker compose -f osiris/docker-compose.yml down
+```
+
+- Detener infraestructura local:
+
+```bash
+docker compose -f infraestructura/docker-compose.yml down
+```
+
+## Endpoints utiles
+
+- API: `http://localhost:8000`
+- Swagger: `http://localhost:8000/documentacion/swagger/`
+- ReDoc: `http://localhost:8000/documentacion/redoc/`
+
+## Scripts operativos
+
+- API CRUD: `./run_crud.sh`
+- Infraestructura local: `infraestructura/run_infra.sh`
+
+## Troubleshooting mínimo
+
+1. **Error: "network elastic_net not found"**  
+   Ejecuta primero:
+   ```bash
+   ./infraestructura/run_infra.sh
+   ```
+   o crea la red manualmente:
+   ```bash
+   docker network create elastic_net
+   ```
+
+2. **La API no conecta a Elasticsearch en local**  
+   Revisa en `osiris/.env`:
+   - `ELASTICSEARCH_HOST=host.docker.internal`
+   - `ELASTICSEARCH_PORT=9200`
+   y confirma que Elasticsearch esté arriba (`docker ps`).
+
+3. **Modos con SSM fallan en local si PARAMETER_STORE no está definido**
+   Estos modos requieren parámetros en AWS SSM (`PARAMETER_STORE`, `AWS_REGION`).
+   Para pruebas locales, deja `PARAMETER_STORE` vacío o sin definir.
 
 ## Licencia
 

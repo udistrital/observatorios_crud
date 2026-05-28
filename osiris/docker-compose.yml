@@ -11,6 +11,8 @@ services:
       - .:/app
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: >
       sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
