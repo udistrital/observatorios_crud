@@ -52,7 +52,7 @@ LOGGING = {
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = (not USE_SSM) or env_bool("DEBUG", False)
+DEBUG = (not USE_SSM) or env_bool("DEBUG", True)
 
 if not USE_SSM:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
