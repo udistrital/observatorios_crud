@@ -14,13 +14,13 @@ steps:
       - sonar-scanner
     when:
       branch:
-        #- develop
-        #- feature/*
-        #- release/*
+        - feature/*
+        - develop
+        - release/*
+        - hotfix/*
         - master
       event:
-        - push
-
+      - push
 
   - name: publish_to_ecr_release
     image: plugins/ecr
@@ -41,6 +41,28 @@ steps:
     when:
       branch:
         - release/*
+      event:
+        - push
+
+  - name: publish_to_ecr_prod
+    image: plugins/ecr
+    settings:
+      access_key:
+        from_secret: AWS_ACCESS_KEY_ID
+      create_repository: true
+      dockerfile: osiris/Dockerfile
+      context: osiris
+      region:
+        from_secret: AWS_REGION
+      repo: ${DRONE_REPO_NAME}
+      secret_key:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      tags:
+        - ${DRONE_COMMIT:0:7}
+        - latest
+    when:
+      branch:
+        - master
       event:
         - push
 
@@ -72,89 +94,6 @@ steps:
     when:
       branch:
         - release/*
-        #- master
-      event:
-        - push
-
-  - name: publish_elasticsearch
-    image: plugins/ecr
-    settings:
-      access_key:
-        from_secret: AWS_ACCESS_KEY_ID
-      create_repository: true
-      region:
-        from_secret: AWS_REGION
-      repo: elasticsearch-service
-      dockerfile: infraestructura/elasticsearch/Dockerfile
-      secret_key:
-        from_secret: AWS_SECRET_ACCESS_KEY
-      tags:
-        - latest
-    when:
-      branch:
-        #- release/*
-        - master
-      event:
-        - push
-
-  - name: publish_kibana
-    image: plugins/ecr
-    settings:
-      access_key:
-        from_secret: AWS_ACCESS_KEY_ID
-      create_repository: true
-      region:
-        from_secret: AWS_REGION
-      repo: kibana-service
-      dockerfile: infraestructura/kibana/Dockerfile
-      secret_key:
-        from_secret: AWS_SECRET_ACCESS_KEY
-      tags:
-        - latest
-    when:
-      branch:
-        #- release/*
-        - master
-      event:
-        - push
-
-  - name: publish_nginx
-    image: plugins/ecr
-    settings:
-      access_key:
-        from_secret: AWS_ACCESS_KEY_ID
-      create_repository: true
-      region:
-        from_secret: AWS_REGION
-      repo: nginx-elastic
-      dockerfile: infraestructura/nginx/Dockerfile
-      secret_key:
-        from_secret: AWS_SECRET_ACCESS_KEY
-      tags:
-        - latest
-    when:
-      branch:
-        #- release/*
-        - master
-      event:
-        - push
-
-  - name: publish_to_ecr_prod
-    image: plugins/ecr
-    settings:
-      access_key:
-        from_secret: AWS_ACCESS_KEY_ID
-      create_repository: true
-      region:
-        from_secret: AWS_REGION
-      repo: ${DRONE_REPO_NAME}
-      secret_key:
-        from_secret: AWS_SECRET_ACCESS_KEY
-      tags:
-        - ${DRONE_COMMIT:0:7}
-        - latest
-    when:
-      branch:
         - master
       event:
         - push
