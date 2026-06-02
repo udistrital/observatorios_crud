@@ -54,6 +54,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 # SECURITY WARNING: don't run with debug turned on in production!
 #DEBUG = (not USE_SSM) or env_bool("DEBUG", True)
 DEBUG = True
+ALLOWED_HOSTS = ["*"]
 
 #if not USE_SSM:
 #    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
@@ -82,16 +83,24 @@ INSTALLED_APPS = [
 ]
 
 
-if not USE_SSM:
-    CORS_ALLOW_ALL_ORIGINS = True
-    CORS_ALLOWED_ORIGINS = []
-    CORS_ALLOWED_ORIGIN_REGEXES = []
-else:
-    CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
-    CORS_ALLOWED_ORIGIN_REGEXES = [
-        r".*\.udistrital\.edu\.co$",
-    ]
+#if not USE_SSM:
+#    CORS_ALLOW_ALL_ORIGINS = True
+#    CORS_ALLOWED_ORIGINS = []
+#    CORS_ALLOWED_ORIGIN_REGEXES = []
+#else:
+#    CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
+#    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+#    CORS_ALLOWED_ORIGIN_REGEXES = [
+#        r".*\.udistrital\.edu\.co$",
+#    ]
+
+from corsheaders.defaults import default_headers, default_methods
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_ORIGIN_REGEXES = []
 
 CORS_ALLOW_METHODS = [
     "GET",
@@ -109,7 +118,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    #"django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
