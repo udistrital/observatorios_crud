@@ -52,7 +52,8 @@ LOGGING = {
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = (not USE_SSM) or env_bool("DEBUG", True)
+#DEBUG = (not USE_SSM) or env_bool("DEBUG", True)
+DEBUG = True
 
 #if not USE_SSM:
 #    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
@@ -89,7 +90,7 @@ else:
     CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
     CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
     CORS_ALLOWED_ORIGIN_REGEXES = [
-        r"^https://.*\.udistrital\.edu\.co$",
+        r".*\.udistrital\.edu\.co$",
     ]
 
 CORS_ALLOW_METHODS = [
