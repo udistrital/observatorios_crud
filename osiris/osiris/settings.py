@@ -16,18 +16,10 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
 import logging
+#from elasticsearch import Elasticsearch, exceptions as es_exceptions
 from osiris.aws_ssm import get_ssm_parameter
 from dotenv import load_dotenv
-
 load_dotenv()
-
-
-def env_bool(name: str, default: bool = False) -> bool:
-    return os.getenv(name, str(default)).lower() in {"1", "true", "yes", "on"}
-
-PARAMETER_STORE_BASE = os.getenv("PARAMETER_STORE", "") or ""
-# If PARAMETER_STORE is set (non-empty), use SSM; otherwise assume local environment.
-USE_SSM = bool(PARAMETER_STORE_BASE and PARAMETER_STORE_BASE.strip())
 
 LOGGING = {
     'version': 1,
@@ -49,17 +41,14 @@ LOGGING = {
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
+SECRET_KEY = "django-insecure-a(yqs0u3bd_kb6u8%d$yqhu8xbxm$cr=#pkf3y^nr47kx^#nq6"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = (not USE_SSM) or env_bool("DEBUG", True)
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+#DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+DEBUG = "true"
 
-#if not USE_SSM:
-#    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
-#else:
-#    ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+#ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -83,24 +72,7 @@ INSTALLED_APPS = [
 ]
 
 
-#if not USE_SSM:
-#    CORS_ALLOW_ALL_ORIGINS = True
-#    CORS_ALLOWED_ORIGINS = []
-#    CORS_ALLOWED_ORIGIN_REGEXES = []
-#else:
-#    CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
-#    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
-#    CORS_ALLOWED_ORIGIN_REGEXES = [
-#        r".*\.udistrital\.edu\.co$",
-#    ]
-
-from corsheaders.defaults import default_headers, default_methods
-
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOWED_ORIGINS = []
-CORS_ALLOWED_ORIGIN_REGEXES = []
 
 CORS_ALLOW_METHODS = [
     "GET",
@@ -118,7 +90,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    #"django.middleware.csrf.CsrfViewMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -197,64 +169,112 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+#HAYSTACK_URL_CONNECTION =  "" 
+#HAYSTACK_ADMIN_INDEX = ".admin"
+#HAYSTACK_CONNECTIONS = {
+#    'default': {
+#        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
+#        'URL': 'http://localhost:9200/',  # URL de tu servidor Elasticsearch
+#        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',      # Nombre del índice
+#    },
+#}
+
+
+
 ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")  
 ELASTICSEARCH_PORT = os.getenv("ELASTICSEARCH_PORT") 
 ELASTICSEARCH_MAIN_INDEX = os.getenv("ELASTICSEARCH_MAIN_INDEX") 
-ELASTICSEARCH_SCHEME = os.getenv("ELASTICSEARCH_SCHEME", "http").strip() or "http"
 
+PARAMETER_STORE_BASE = os.getenv("PARAMETER_STORE")
 
+base_path = f"/{PARAMETER_STORE_BASE}/observatorios_crud/db/"
 
+ES_USERNAME = get_ssm_parameter(base_path + "username")
+ES_PASSWORD = get_ssm_parameter(base_path + "password")
 
-if USE_SSM:
-    base_path = f"/{PARAMETER_STORE_BASE}/observatorios_crud/db/"
-    ES_USERNAME = get_ssm_parameter(base_path + "username")
-    ES_PASSWORD = get_ssm_parameter(base_path + "password")
-else:
-    ES_USERNAME = os.getenv("ELASTICSEARCH_USERNAME", "")
-    ES_PASSWORD = os.getenv("ELASTICSEARCH_PASSWORD", "")
-if not ES_USERNAME or not ES_PASSWORD:
-    raise RuntimeError("Missing Elasticsearch credentials for current environment")
+print("======================================")
+print("✅ ELASTICSEARCH CONFIG")
+print("PARAMETER_STORE_BASE:", PARAMETER_STORE_BASE)
+print("BASE_PATH:", base_path)
+print("ES_USERNAME:", ES_USERNAME)
+print("ES_PASSWORD:", ES_PASSWORD)
+print("======================================")
 
-DJANGO_LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "INFO")
-LOGGING["loggers"]["elasticsearch"]["level"] = DJANGO_LOG_LEVEL
+#ES_USERNAME = os.getenv("ELASTICSEARCH_USERNAME") 
+#ES_PASSWORD = os.getenv("ELASTICSEARCH_PASSWORD")
+
+#ELASTICSEARCH_DSL = {
+#    'default': {
+#        'HOST': ELASTICSEARCH_HOST,
+#        'PORT': ELASTICSEARCH_PORT,
+#    },
+#}
 
 ELASTICSEARCH_DSL = {
     'default': {
         'HOST': ELASTICSEARCH_HOST,
-        'PORT': ELASTICSEARCH_PORT,
+       'PORT': ELASTICSEARCH_PORT,
         'USERNAME': ES_USERNAME,
         'PASSWORD': ES_PASSWORD,
     },
 }
 
-ES_HOST = f"{ELASTICSEARCH_SCHEME}://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+#ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+ES_HOST = f"http://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+
+# Log y prueba de conexión
+#es_logger = logging.getLogger("elasticsearch")
+#
+#try:
+#    es = Elasticsearch(ES_HOST)
+#    if es.ping():
+#        es_logger.info(f"✅ Elasticsearch conectado correctamente: {ES_HOST}")
+#    else:
+#        es_logger.error(f"⚠️ Elasticsearch no respondió al ping: {ES_HOST}")
+#except es_exceptions.ConnectionError as e:
+#    es_logger.error(f"❌ Error conectando a Elasticsearch: {e}")
+#except Exception as e:
+#    es_logger.error(f"❌ Error inesperado al conectar a Elasticsearch: {e}")
+#
+#SWAGGER_SETTINGS = {
+#   'USE_SESSION_AUTH': False
+#}
+
+#HAYSTACK_URL_CONNECTION =  "" 
+#HAYSTACK_ADMIN_INDEX = ".admin"
+#HAYSTACK_CONNECTIONS = {
+#    'default': {
+#        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
+#        'URL': f"http://{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
+#        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
+#    },
+#}
 
 HAYSTACK_ADMIN_INDEX = ".admin"
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
-        'URL': f"{ELASTICSEARCH_SCHEME}://{ES_USERNAME}:{ES_PASSWORD}@{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
-        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
+        'URL': f"http://{ES_USERNAME}:{ES_PASSWORD}@{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
+       'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
     },
 }
 
 LANGUAGE_CODE = 'es'
 
-STATIC_URL = '/static/'
-STATIC_ROOT = os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles"))
+STATIC_URL = 'static/'
 MEDIA_URL = '/media/'  
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# APPEND_SLASH=False
 
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100,
-    'EXCEPTION_HANDLER': 'apps.utils.views.custom_exception_handler',
+    'PAGE_SIZE': 100,  # Número de elementos por página
+}
+
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'apps.utils.views.custom_exception_handler'
 }
 
 GRAFICOS = ["pie", "barras", "linea", "multiple_linea" , "heatmap"]
 
-if USE_SSM:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
