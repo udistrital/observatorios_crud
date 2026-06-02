@@ -54,8 +54,11 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    "pruebasatlas.portaloas.udistrital.edu.co",
+    "localhost",
+    "127.0.0.1",
+]
 
 # Application definition
 
@@ -86,8 +89,8 @@ if not USE_SSM:
     CORS_ALLOWED_ORIGIN_REGEXES = []
 else:
     print("prod")
-    CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    CORS_ALLOW_ALL_ORIGINS = False
+    #CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
     CORS_ALLOWED_ORIGIN_REGEXES = [
         r".*\.udistrital\.edu\.co$",
     ]
