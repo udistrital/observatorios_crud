@@ -56,6 +56,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 DEBUG = True
 ALLOWED_HOSTS = [
     "pruebasatlas.portaloas.udistrital.edu.co",
+    "172.30.5.251",
     "localhost",
     "127.0.0.1",
 ]
