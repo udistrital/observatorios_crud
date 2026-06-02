@@ -196,8 +196,6 @@ print("======================================")
 print("✅ ELASTICSEARCH CONFIG")
 print("PARAMETER_STORE_BASE:", PARAMETER_STORE_BASE)
 print("BASE_PATH:", base_path)
-print("ES_USERNAME:", ES_USERNAME)
-print("ES_PASSWORD:", ES_PASSWORD)
 print("======================================")
 
 #ES_USERNAME = os.getenv("ELASTICSEARCH_USERNAME") 
@@ -213,7 +211,7 @@ print("======================================")
 ELASTICSEARCH_DSL = {
     'default': {
         'HOST': ELASTICSEARCH_HOST,
-       'PORT': ELASTICSEARCH_PORT,
+        'PORT': ELASTICSEARCH_PORT,
         'USERNAME': ES_USERNAME,
         'PASSWORD': ES_PASSWORD,
     },
@@ -221,7 +219,9 @@ ELASTICSEARCH_DSL = {
 
 #ES_HOST = f"{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
 ES_HOST = f"http://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
-
+print("======================================")
+print("ES_HOST:", ES_HOST)
+print("======================================")
 # Log y prueba de conexión
 #es_logger = logging.getLogger("elasticsearch")
 #
