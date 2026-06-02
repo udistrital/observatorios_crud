@@ -210,7 +210,7 @@ print("======================================")
 
 ELASTICSEARCH_DSL = {
     'default': {
-        'HOST': ELASTICSEARCH_HOST,
+        'HOST': '172.30.4.155',
         'PORT': ELASTICSEARCH_PORT,
         'USERNAME': ES_USERNAME,
         'PASSWORD': ES_PASSWORD,
