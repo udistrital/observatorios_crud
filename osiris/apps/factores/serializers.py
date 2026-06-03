@@ -36,6 +36,11 @@ class CaracteristicasField(serializers.Field):
 
 
 class FactorSerializer(serializers.Serializer):
+    proceso_id = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        allow_null=False
+    )
     nombre = serializers.CharField(
         max_length=1000
     )
@@ -49,16 +54,21 @@ class FactorSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True
     )
+    caracteristicas = CaracteristicasField(
+        required=False
+    )
     activo = serializers.BooleanField(
         required=False,
         default=True
     )
-    caracteristicas = CaracteristicasField(
-        required=False
-    )
 
 
 class FactorUpdateSerializer(serializers.Serializer):
+    proceso_id = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        allow_null=False
+    )
     nombre = serializers.CharField(
         max_length=1000,
         required=False,
@@ -75,9 +85,9 @@ class FactorUpdateSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True
     )
-    activo = serializers.BooleanField(
+    caracteristicas = CaracteristicasField(
         required=False
     )
-    caracteristicas = CaracteristicasField(
+    activo = serializers.BooleanField(
         required=False
     )

@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "apps.caracteristicas",
     "apps.aspectos",
     "apps.estructuras",
+    "apps.procesos",
     'apps.datos',
     'apps.campos',
     'apps.graficos'
