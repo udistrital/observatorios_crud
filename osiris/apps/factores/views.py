@@ -34,7 +34,7 @@ class FactorViewSet(ViewSet):
                     "type": "text"
                 },
                 "calificacion": {
-                    "type": "keyword"
+                    "type": "double"
                 },
                 "caracteristicas": {
                     "type": "keyword"
@@ -75,7 +75,7 @@ class FactorViewSet(ViewSet):
             "proceso_id": source.get("proceso_id", ""),
             "nombre": source.get("nombre", ""),
             "descripcion": source.get("descripcion", "") or "",
-            "calificacion": source.get("calificacion", "") or "",
+            "calificacion": source.get("calificacion"),
             "caracteristicas": source.get("caracteristicas") or [],
             "activo": source.get("activo", True),
             "fecha_creacion": source.get("fecha_creacion"),
@@ -227,7 +227,7 @@ class FactorViewSet(ViewSet):
             "proceso_id": proceso_id,
             "nombre": data.get("nombre"),
             "descripcion": data.get("descripcion") or "",
-            "calificacion": data.get("calificacion") or "",
+            "calificacion": data.get("calificacion"),
             "caracteristicas": data.get("caracteristicas") or [],
             "activo": data.get("activo", True),
             "fecha_creacion": fecha_actual,
