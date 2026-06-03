@@ -31,6 +31,9 @@ urlpatterns = [
     ### Observatorios ###
     path("api/<str:version>/", include("apps.observatorios.urls")),
 
+    ### Procesos ###
+    path("api/<str:version>/", include("apps.procesos.urls")),
+
     ### Factores ###
     path("api/<str:version>/", include("apps.factores.urls")),
 
