@@ -1,6 +1,26 @@
 import json
 from rest_framework import serializers
 
+class CalificacionField(serializers.Field):
+    def to_internal_value(self, data):
+        if data in [None, ""]:
+            return None
+
+        try:
+            return float(data)
+        except (TypeError, ValueError):
+            raise serializers.ValidationError(
+                "El campo calificacion debe ser un número decimal."
+            )
+
+    def to_representation(self, value):
+        if value in [None, ""]:
+            return None
+
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
 
 class CaracteristicasField(serializers.Field):
     def to_internal_value(self, data):
@@ -49,10 +69,8 @@ class FactorSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True
     )
-    calificacion = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        allow_null=True
+    calificacion = CalificacionField(
+        required=False
     )
     caracteristicas = CaracteristicasField(
         required=False
@@ -80,10 +98,8 @@ class FactorUpdateSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True
     )
-    calificacion = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        allow_null=True
+    calificacion = CalificacionField(
+        required=False
     )
     caracteristicas = CaracteristicasField(
         required=False

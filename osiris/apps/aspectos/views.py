@@ -1,3 +1,4 @@
+from django.utils import timezone
 from elasticsearch import NotFoundError
 from rest_framework import status
 from rest_framework.response import Response
@@ -12,16 +13,84 @@ class AspectoViewSet(ViewSet):
     nombre_indice = "atlas_aspectos"
     indice_caracteristicas = "atlas_caracteristicas"
 
+    aspecto_mapping = {
+        "mappings": {
+            "properties": {
+                "id": {
+                    "type": "keyword"
+                },
+                "caracteristica_id": {
+                    "type": "keyword"
+                },
+                "nombre": {
+                    "type": "text",
+                    "fields": {
+                        "keyword": {
+                            "type": "keyword"
+                        }
+                    }
+                },
+                "estructuras_evidencias": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "keyword"
+                        },
+                        "tipo_evidencia": {
+                            "type": "keyword"
+                        },
+                        "nombre": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword"
+                                }
+                            }
+                        },
+                        "activo": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "activo": {
+                    "type": "boolean"
+                },
+                "fecha_creacion": {
+                    "type": "date"
+                },
+                "fecha_modificacion": {
+                    "type": "date"
+                },
+            }
+        }
+    }
+
     def get_elasticsearch_client(self):
         return get_elasticsearch_client()
 
+    def fecha_actual(self):
+        return timezone.now().isoformat()
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+
+        cliente = self.get_elasticsearch_client()
+
+        if not cliente.indices.exists(index=self.nombre_indice):
+            cliente.indices.create(
+                index=self.nombre_indice,
+                body=self.aspecto_mapping
+            )
+
     def normalizar_aspecto(self, elastic_id, source):
         return {
-            "id": elastic_id,
+            "id": source.get("id") or elastic_id,
             "caracteristica_id": source.get("caracteristica_id"),
             "nombre": source.get("nombre", ""),
-            "activo": source.get("activo", True),
             "estructuras_evidencias": source.get("estructuras_evidencias") or [],
+            "activo": source.get("activo", True),
+            "fecha_creacion": source.get("fecha_creacion"),
+            "fecha_modificacion": source.get("fecha_modificacion"),
         }
 
     def obtener_caracteristica(self, cliente, caracteristica_id):
@@ -63,9 +132,11 @@ class AspectoViewSet(ViewSet):
             id=caracteristica_id,
             body={
                 "doc": {
-                    "aspectos": aspectos
+                    "aspectos": aspectos,
+                    "fecha_modificacion": self.fecha_actual(),
                 }
-            }
+            },
+            refresh=True
         )
 
         return True
@@ -96,9 +167,11 @@ class AspectoViewSet(ViewSet):
             id=caracteristica_id,
             body={
                 "doc": {
-                    "aspectos": aspectos
+                    "aspectos": aspectos,
+                    "fecha_modificacion": self.fecha_actual(),
                 }
-            }
+            },
+            refresh=True
         )
 
         return True
@@ -115,7 +188,7 @@ class AspectoViewSet(ViewSet):
         if caracteristica_id:
             query = {
                 "term": {
-                    "caracteristica_id.keyword": caracteristica_id
+                    "caracteristica_id": caracteristica_id
                 }
             }
 
@@ -189,17 +262,22 @@ class AspectoViewSet(ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        fecha_actual = self.fecha_actual()
+
         documento = {
             "caracteristica_id": caracteristica_id,
             "nombre": data.get("nombre"),
-            "activo": data.get("activo", True),
             "estructuras_evidencias": data.get("estructuras_evidencias") or [],
+            "activo": data.get("activo", True),
+            "fecha_creacion": fecha_actual,
+            "fecha_modificacion": fecha_actual,
         }
 
         try:
             respuesta = cliente.index(
                 index=self.nombre_indice,
-                document=documento
+                document=documento,
+                refresh=True
             )
 
             aspecto_id = respuesta["_id"]
@@ -211,7 +289,8 @@ class AspectoViewSet(ViewSet):
                     "doc": {
                         "id": aspecto_id
                     }
-                }
+                },
+                refresh=True
             )
 
             self.agregar_aspecto_a_caracteristica(
@@ -291,13 +370,16 @@ class AspectoViewSet(ViewSet):
                 pk
             )
 
+        data["fecha_modificacion"] = self.fecha_actual()
+
         try:
             cliente.update(
                 index=self.nombre_indice,
                 id=pk,
                 body={
                     "doc": data
-                }
+                },
+                refresh=True
             )
 
             resultado = cliente.get(
@@ -328,9 +410,16 @@ class AspectoViewSet(ViewSet):
         cliente = self.get_elasticsearch_client()
 
         try:
-            resultado = cliente.get(
+            cliente.update(
                 index=self.nombre_indice,
-                id=pk
+                id=pk,
+                body={
+                    "doc": {
+                        "activo": False,
+                        "fecha_modificacion": self.fecha_actual(),
+                    }
+                },
+                refresh=True
             )
 
         except NotFoundError:
@@ -341,26 +430,10 @@ class AspectoViewSet(ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        aspecto = resultado["_source"]
-        caracteristica_id = aspecto.get("caracteristica_id")
-
-        if caracteristica_id:
-            self.quitar_aspecto_de_caracteristica(
-                cliente,
-                caracteristica_id,
-                pk
-            )
-
-        try:
-            cliente.delete(
-                index=self.nombre_indice,
-                id=pk
-            )
-
         except Exception as error:
             return Response(
                 {
-                    "error": "No fue posible eliminar el aspecto",
+                    "error": "No fue posible desactivar el aspecto",
                     "detalle": str(error)
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -368,7 +441,7 @@ class AspectoViewSet(ViewSet):
 
         return Response(
             {
-                "message": "Aspecto eliminado correctamente",
+                "message": "Aspecto desactivado correctamente",
                 "id": pk
             },
             status=status.HTTP_200_OK

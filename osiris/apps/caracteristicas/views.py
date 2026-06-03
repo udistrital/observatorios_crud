@@ -1,21 +1,74 @@
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from apps.elasticsearch_utils.utils import get_elasticsearch_client
 
-from .serializers import (
-    CaracteristicaSerializer,
-    CaracteristicaUpdateSerializer,
-)
+from .serializers import (CaracteristicaSerializer,CaracteristicaUpdateSerializer)
 
 
 class CaracteristicaViewSet(ViewSet):
     nombre_indice = "atlas_caracteristicas"
     indice_factores = "atlas_factores"
 
+    caracteristica_mapping = {
+        "mappings": {
+            "properties": {
+                "id": {
+                    "type": "keyword"
+                },
+                "factor_id": {
+                    "type": "keyword"
+                },
+                "nombre": {
+                    "type": "text",
+                    "fields": {
+                        "keyword": {
+                            "type": "keyword"
+                        }
+                    }
+                },
+                "descripcion": {
+                    "type": "text"
+                },
+                "calificacion": {
+                    "type": "double"
+                },
+                "aspectos": {
+                    "type": "keyword"
+                },
+                "activo": {
+                    "type": "boolean"
+                },
+                "fecha_creacion": {
+                    "type": "date"
+                },
+                "fecha_modificacion": {
+                    "type": "date"
+                },
+            }
+        }
+    }
+
     def get_elasticsearch_client(self):
         return get_elasticsearch_client()
+
+    def fecha_actual(self):
+        return timezone.now().isoformat()
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+
+        cliente = self.get_elasticsearch_client()
+        self.asegurar_indice_caracteristicas(cliente)
+
+    def asegurar_indice_caracteristicas(self, cliente):
+        if not cliente.indices.exists(index=self.nombre_indice):
+            cliente.indices.create(
+                index=self.nombre_indice,
+                body=self.caracteristica_mapping
+            )
 
     def existe_factor(self, factor_elastic_id):
         cliente = self.get_elasticsearch_client()
@@ -40,7 +93,12 @@ class CaracteristicaViewSet(ViewSet):
         except Exception:
             return None
 
-    def agregar_caracteristica_al_factor(self,cliente,factor_elastic_id,caracteristica_id):
+    def agregar_caracteristica_al_factor(
+        self,
+        cliente,
+        factor_elastic_id,
+        caracteristica_id
+    ):
         factor = self.obtener_factor(cliente, factor_elastic_id)
 
         if not factor:
@@ -56,14 +114,21 @@ class CaracteristicaViewSet(ViewSet):
             id=factor_elastic_id,
             body={
                 "doc": {
-                    "caracteristicas": caracteristicas
+                    "caracteristicas": caracteristicas,
+                    "fecha_modificacion": self.fecha_actual(),
                 }
-            }
+            },
+            refresh=True
         )
 
         return True
-    
-    def quitar_caracteristica_del_factor(self,cliente,factor_elastic_id,caracteristica_id):
+
+    def quitar_caracteristica_del_factor(
+        self,
+        cliente,
+        factor_elastic_id,
+        caracteristica_id
+    ):
         factor = self.obtener_factor(cliente, factor_elastic_id)
 
         if not factor:
@@ -81,13 +146,15 @@ class CaracteristicaViewSet(ViewSet):
             id=factor_elastic_id,
             body={
                 "doc": {
-                    "caracteristicas": caracteristicas
+                    "caracteristicas": caracteristicas,
+                    "fecha_modificacion": self.fecha_actual(),
                 }
-            }
+            },
+            refresh=True
         )
 
         return True
-    
+
     def obtener_elastic_id_caracteristica(self, cliente, caracteristica_id):
         try:
             respuesta = cliente.get(
@@ -107,7 +174,7 @@ class CaracteristicaViewSet(ViewSet):
                 body={
                     "query": {
                         "term": {
-                            "id.keyword": caracteristica_id
+                            "id": caracteristica_id
                         }
                     },
                     "size": 1
@@ -124,13 +191,15 @@ class CaracteristicaViewSet(ViewSet):
 
     def normalizar_caracteristica(self, elastic_id, source):
         return {
-            "id": elastic_id,
+            "id": source.get("id") or elastic_id,
             "factor_id": source.get("factor_id"),
             "nombre": source.get("nombre", ""),
             "descripcion": source.get("descripcion", ""),
-            "calificacion": source.get("calificacion", ""),
-            "activo": source.get("activo", True),
+            "calificacion": source.get("calificacion"),
             "aspectos": source.get("aspectos") or [],
+            "activo": source.get("activo", True),
+            "fecha_creacion": source.get("fecha_creacion"),
+            "fecha_modificacion": source.get("fecha_modificacion"),
         }
 
     def list(self, request, *args, **kwargs):
@@ -145,7 +214,7 @@ class CaracteristicaViewSet(ViewSet):
         if factor_id:
             query = {
                 "term": {
-                    "factor_id.keyword": factor_id
+                    "factor_id": factor_id
                 }
             }
 
@@ -190,16 +259,6 @@ class CaracteristicaViewSet(ViewSet):
 
         return Response(data, status=status.HTTP_200_OK)
 
-    def asegurar_indice_caracteristicas(self, cliente):
-        try:
-            if not cliente.indices.exists(index=self.nombre_indice):
-                cliente.indices.create(index=self.nombre_indice)
-        except Exception as error:
-            print(
-                f"No fue posible asegurar el índice "
-                f"{self.nombre_indice}: {error}"
-            )
-
     def create(self, request, *args, **kwargs):
         serializer = CaracteristicaSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -208,8 +267,6 @@ class CaracteristicaViewSet(ViewSet):
         factor_elastic_id = data.get("factor_id")
 
         cliente = self.get_elasticsearch_client()
-
-        self.asegurar_indice_caracteristicas(cliente)
 
         factor = self.obtener_factor(
             cliente,
@@ -225,18 +282,23 @@ class CaracteristicaViewSet(ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        fecha_actual = self.fecha_actual()
+
         documento = {
             "factor_id": factor_elastic_id,
             "nombre": data.get("nombre"),
-            "descripcion": data.get("descripcion"),
-            "calificacion": data.get("calificacion") or "",
-            "activo": data.get("activo", True),
+            "descripcion": data.get("descripcion") or "",
+            "calificacion": data.get("calificacion"),
             "aspectos": data.get("aspectos") or [],
+            "activo": data.get("activo", True),
+            "fecha_creacion": fecha_actual,
+            "fecha_modificacion": fecha_actual,
         }
 
         respuesta = cliente.index(
             index=self.nombre_indice,
-            document=documento
+            document=documento,
+            refresh=True
         )
 
         caracteristica_id = respuesta["_id"]
@@ -248,7 +310,8 @@ class CaracteristicaViewSet(ViewSet):
                 "doc": {
                     "id": caracteristica_id
                 }
-            }
+            },
+            refresh=True
         )
 
         self.agregar_caracteristica_al_factor(
@@ -269,6 +332,7 @@ class CaracteristicaViewSet(ViewSet):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
+        data["fecha_modificacion"] = self.fecha_actual()
 
         cliente = self.get_elasticsearch_client()
 
@@ -330,7 +394,8 @@ class CaracteristicaViewSet(ViewSet):
                 id=elastic_id,
                 body={
                     "doc": data
-                }
+                },
+                refresh=True
             )
 
             resultado = cliente.get(
@@ -366,9 +431,11 @@ class CaracteristicaViewSet(ViewSet):
                 id=pk,
                 body={
                     "doc": {
-                        "activo": False
+                        "activo": False,
+                        "fecha_modificacion": self.fecha_actual(),
                     }
-                }
+                },
+                refresh=True
             )
         except Exception:
             return Response(
