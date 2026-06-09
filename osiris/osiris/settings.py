@@ -18,6 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 import os
 import logging
 from osiris.aws_ssm import get_ssm_parameter
+from urllib.parse import quote
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -222,6 +223,9 @@ if not ES_USERNAME or not ES_PASSWORD:
 DJANGO_LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "INFO")
 LOGGING["loggers"]["elasticsearch"]["level"] = DJANGO_LOG_LEVEL
 
+ES_USERNAME_URL = quote(ES_USERNAME, safe="")
+ES_PASSWORD_URL = quote(ES_PASSWORD, safe="")
+
 ELASTICSEARCH_DSL = {
     'default': {
         'HOST': ELASTICSEARCH_HOST,
@@ -231,14 +235,18 @@ ELASTICSEARCH_DSL = {
     },
 }
 
-ES_HOST = f"{ELASTICSEARCH_SCHEME}://{ELASTICSEARCH_DSL['default']['USERNAME']}:{ELASTICSEARCH_DSL['default']['PASSWORD']}@{ELASTICSEARCH_DSL['default']['HOST']}:{ELASTICSEARCH_DSL['default']['PORT']}"
+ES_HOST = (
+    f"{ELASTICSEARCH_SCHEME}://"
+    f"{ES_USERNAME_URL}:{ES_PASSWORD_URL}@"
+    f"{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}"
+)
 
 HAYSTACK_ADMIN_INDEX = ".admin"
 HAYSTACK_CONNECTIONS = {
-    'default': {
-        'ENGINE': 'haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine',
-        'URL': f"{ELASTICSEARCH_SCHEME}://{ES_USERNAME}:{ES_PASSWORD}@{ELASTICSEARCH_HOST}:{ELASTICSEARCH_PORT}",
-        'INDEX_NAME': f'{HAYSTACK_ADMIN_INDEX}',
+    "default": {
+        "ENGINE": "haystack.backends.elasticsearch7_backend.Elasticsearch7SearchEngine",
+        "URL": ES_HOST,
+        "INDEX_NAME": HAYSTACK_ADMIN_INDEX,
     },
 }
 
