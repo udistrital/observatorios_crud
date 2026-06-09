@@ -1,27 +1,58 @@
 from rest_framework import serializers
 
-from .utils import ELASTICSEARCH_CAMPOS, normalizar_campos
-
 
 class CampoSerializer(serializers.Serializer):
-    nombre_campo = serializers.CharField(required=True)
-    tipo_campo = serializers.CharField(required=True)
+    campo_id = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
 
-    def validate_tipo_campo(self, value):
-        value = value.strip()
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True
+    )
 
-        if value not in ELASTICSEARCH_CAMPOS:
-            raise serializers.ValidationError(
-                f"Tipo inválido '{value}'. Permitidos: {list(ELASTICSEARCH_CAMPOS.keys())}"
-            )
+    nombre_campo = serializers.CharField(
+        required=True,
+        allow_blank=False
+    )
 
-        return value
+    tipo_campo = serializers.CharField(
+        required=True,
+        allow_blank=False
+    )
+
+    activo = serializers.BooleanField(
+        required=False,
+        default=True
+    )
+
+    # Se usa cuando el usuario cambia el tipo del campo.
+    # Si viene en true, el backend intenta migrar el valor anterior
+    # al nuevo campo_id generado.
+    migrar_data = serializers.BooleanField(
+        required=False,
+        default=False
+    )
 
     def validate_nombre_campo(self, value):
         value = value.strip()
 
         if not value:
-            raise serializers.ValidationError("El nombre del campo es obligatorio.")
+            raise serializers.ValidationError(
+                "El nombre del campo es obligatorio."
+            )
+
+        return value
+
+    def validate_tipo_campo(self, value):
+        value = value.strip()
+
+        if not value:
+            raise serializers.ValidationError(
+                "El tipo del campo es obligatorio."
+            )
 
         return value
 
@@ -31,18 +62,21 @@ class EstructuraSerializer(serializers.Serializer):
     tipo_evidencia = serializers.CharField(required=False)
     nombre = serializers.CharField(required=False)
     activo = serializers.BooleanField(required=False)
-    campos = CampoSerializer(many=True, required=False)
-    data = serializers.ListField(required=False)
 
-    def validate_campos(self, value):
-        try:
-            return normalizar_campos(value)
-        except ValueError as error:
-            raise serializers.ValidationError(str(error))
+    campos = CampoSerializer(
+        many=True,
+        required=False
+    )
+
+    data = serializers.ListField(
+        required=False
+    )
 
     def validate_data(self, value):
         if not isinstance(value, list):
-            raise serializers.ValidationError("El campo data debe ser una lista.")
+            raise serializers.ValidationError(
+                "El campo data debe ser una lista."
+            )
 
         for item in value:
             if not isinstance(item, dict):
@@ -58,8 +92,15 @@ class EstructuraUpdateSerializer(serializers.Serializer):
     tipo_evidencia = serializers.CharField(required=False)
     nombre = serializers.CharField(required=False)
     activo = serializers.BooleanField(required=False)
-    campos = CampoSerializer(many=True, required=False)
-    data = serializers.ListField(required=False)
+
+    campos = CampoSerializer(
+        many=True,
+        required=False
+    )
+
+    data = serializers.ListField(
+        required=False
+    )
 
     # Este campo es solo una instrucción del request.
     # No se guarda dentro del documento.
@@ -68,15 +109,11 @@ class EstructuraUpdateSerializer(serializers.Serializer):
         required=False
     )
 
-    def validate_campos(self, value):
-        try:
-            return normalizar_campos(value)
-        except ValueError as error:
-            raise serializers.ValidationError(str(error))
-
     def validate_data(self, value):
         if not isinstance(value, list):
-            raise serializers.ValidationError("El campo data debe ser una lista.")
+            raise serializers.ValidationError(
+                "El campo data debe ser una lista."
+            )
 
         for item in value:
             if not isinstance(item, dict):

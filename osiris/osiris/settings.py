@@ -1,3 +1,4 @@
+
 """
 Django settings for osiris project.
 
@@ -52,12 +53,16 @@ LOGGING = {
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = (not USE_SSM) or env_bool("DEBUG", False)
-
-if not USE_SSM:
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
-else:
-    ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+DEBUG = True
+ALLOWED_HOSTS = ["*",]
+#ALLOWED_HOSTS = [
+#    "pruebasapi.intranetoas.udistrital.edu.co",
+#    "pruebasatlas.portaloas.udistrital.edu.co",
+#    "172.30.5.86",
+#    "172.30.5.251",
+#    "localhost",
+#    "127.0.0.1",
+#]
 
 # Application definition
 
@@ -75,6 +80,7 @@ INSTALLED_APPS = [
     "apps.caracteristicas",
     "apps.aspectos",
     "apps.estructuras",
+    "apps.procesos",
     'apps.datos',
     'apps.campos',
     'apps.graficos'
@@ -82,14 +88,22 @@ INSTALLED_APPS = [
 
 
 if not USE_SSM:
+    print("local")
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = []
     CORS_ALLOWED_ORIGIN_REGEXES = []
 else:
-    CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    print("prod")
+    CORS_ALLOW_ALL_ORIGINS = False
+    #CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    CORS_ALLOWED_ORIGINS = [
+        "http://pruebasatlas.portaloas.udistrital.edu.co",
+        "http://pruebasapi.intranetoas.udistrital.edu.co",
+        "https://pruebasatlas.portaloas.udistrital.edu.co",
+        "https://pruebasapi.intranetoas.udistrital.edu.co",
+    ]
     CORS_ALLOWED_ORIGIN_REGEXES = [
-        r"^https://.*\.udistrital\.edu\.co$",
+        r".*\.udistrital\.edu\.co$",
     ]
 
 CORS_ALLOW_METHODS = [
@@ -242,9 +256,18 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'apps.utils.views.custom_exception_handler',
 }
 
+SWAGGER_SETTINGS = {
+    'DEFAULT_INFO': 'osiris.urls.api_info',
+    'DEFAULT_GENERATOR_CLASS': 'osiris.swagger.AtlasSchemaGenerator',
+}
+
 GRAFICOS = ["pie", "barras", "linea", "multiple_linea" , "heatmap"]
 
 if USE_SSM:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_REDIRECT_EXEMPT = [
+        r"^health/$",
+    ]

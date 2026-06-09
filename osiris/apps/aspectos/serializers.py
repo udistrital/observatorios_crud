@@ -1,9 +1,7 @@
 import json
 from rest_framework import serializers
 
-
 TIPOS_EVIDENCIA_PERMITIDOS = ["Documental", "Tabla"]
-
 
 class EstructurasEvidenciasField(serializers.Field):
     def to_internal_value(self, data):
@@ -105,17 +103,20 @@ class EstructurasEvidenciasField(serializers.Field):
 class AspectoSerializer(serializers.Serializer):
     caracteristica_id = serializers.CharField(required=True)
     nombre = serializers.CharField(required=True, max_length=1000)
-    activo = serializers.BooleanField(required=False, default=True)
     estructuras_evidencias = EstructurasEvidenciasField(required=False)
+    activo = serializers.BooleanField(required=False, default=True)
 
 
 class AspectoUpdateSerializer(serializers.Serializer):
     caracteristica_id = serializers.CharField(required=False)
+
     nombre = serializers.CharField(
         required=False,
         max_length=1000,
         allow_blank=True,
         allow_null=True
     )
-    activo = serializers.BooleanField(required=False)
+
     estructuras_evidencias = EstructurasEvidenciasField(required=False)
+
+    activo = serializers.BooleanField(required=False)

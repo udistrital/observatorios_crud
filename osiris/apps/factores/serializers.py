@@ -1,6 +1,26 @@
 import json
 from rest_framework import serializers
 
+class CalificacionField(serializers.Field):
+    def to_internal_value(self, data):
+        if data in [None, ""]:
+            return None
+
+        try:
+            return float(data)
+        except (TypeError, ValueError):
+            raise serializers.ValidationError(
+                "El campo calificacion debe ser un número decimal."
+            )
+
+    def to_representation(self, value):
+        if value in [None, ""]:
+            return None
+
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
 
 class CaracteristicasField(serializers.Field):
     def to_internal_value(self, data):
@@ -36,6 +56,11 @@ class CaracteristicasField(serializers.Field):
 
 
 class FactorSerializer(serializers.Serializer):
+    proceso_id = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        allow_null=False
+    )
     nombre = serializers.CharField(
         max_length=1000
     )
@@ -44,21 +69,24 @@ class FactorSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True
     )
-    calificacion = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        allow_null=True
+    calificacion = CalificacionField(
+        required=False
+    )
+    caracteristicas = CaracteristicasField(
+        required=False
     )
     activo = serializers.BooleanField(
         required=False,
         default=True
     )
-    caracteristicas = CaracteristicasField(
-        required=False
-    )
 
 
 class FactorUpdateSerializer(serializers.Serializer):
+    proceso_id = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        allow_null=False
+    )
     nombre = serializers.CharField(
         max_length=1000,
         required=False,
@@ -70,14 +98,12 @@ class FactorUpdateSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True
     )
-    calificacion = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        allow_null=True
-    )
-    activo = serializers.BooleanField(
+    calificacion = CalificacionField(
         required=False
     )
     caracteristicas = CaracteristicasField(
+        required=False
+    )
+    activo = serializers.BooleanField(
         required=False
     )
