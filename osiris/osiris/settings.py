@@ -54,15 +54,15 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = ["*",]
-#ALLOWED_HOSTS = [
-#    "pruebasapi.intranetoas.udistrital.edu.co",
-#    "pruebasatlas.portaloas.udistrital.edu.co",
-#    "172.30.5.86",
-#    "172.30.5.251",
-#    "localhost",
-#    "127.0.0.1",
-#]
+#ALLOWED_HOSTS = ["*",]
+ALLOWED_HOSTS = [
+    "pruebasapi.intranetoas.udistrital.edu.co",
+    "pruebasatlas.portaloas.udistrital.edu.co",
+    "172.30.5.86",
+    "172.30.5.251",
+    "localhost",
+    "127.0.0.1",
+]
 
 # Application definition
 
@@ -87,21 +87,22 @@ INSTALLED_APPS = [
 ]
 
 
-#if not USE_SSM:
-#    print("local")
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = []
-CORS_ALLOWED_ORIGIN_REGEXES = []
-#else:
-    #print("prod")
-    #CORS_ALLOW_ALL_ORIGINS = False
+if not USE_SSM:
+    print("local")
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = []
+    CORS_ALLOWED_ORIGIN_REGEXES = []
+else:
+    print("prod")
+    CORS_ALLOW_ALL_ORIGINS = False
     #CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
-    #CORS_ALLOWED_ORIGINS = [
-    #    "172.30.5.86",
-    #]
-    #CORS_ALLOWED_ORIGIN_REGEXES = [
-    #    r".*\.udistrital\.edu\.co$",
-    #]
+    CORS_ALLOWED_ORIGINS = [
+        "http://172.30.5.86",
+        "https://172.30.5.86",
+    ]
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r".*\.udistrital\.edu\.co$",
+    ]
 
 CORS_ALLOW_METHODS = [
     "GET",
