@@ -57,6 +57,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "pruebasapi.intranetoas.udistrital.edu.co",
     "pruebasatlas.portaloas.udistrital.edu.co",
+    "172.30.5.86",
     "172.30.5.251",
     "localhost",
     "127.0.0.1",
@@ -94,6 +95,9 @@ else:
     print("prod")
     CORS_ALLOW_ALL_ORIGINS = False
     #CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    CORS_ALLOWED_ORIGINS = [
+        "172.30.5.86",
+    ]
     CORS_ALLOWED_ORIGIN_REGEXES = [
         r".*\.udistrital\.edu\.co$",
     ]
