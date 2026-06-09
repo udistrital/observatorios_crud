@@ -1,6 +1,7 @@
 import uuid
 import re
 
+from django.utils import timezone
 from elasticsearch import NotFoundError
 from rest_framework import status
 from rest_framework.response import Response
@@ -19,12 +20,59 @@ class EstructuraViewSet(ViewSet):
     prefijo_aplicacion = "atlas"
     contexto_indice = "estructura"
 
+    estructura_mapping = {
+        "mappings": {
+            "properties": {
+                "id": {
+                    "type": "keyword"
+                },
+                "aspecto_id": {
+                    "type": "keyword"
+                },
+                "tipo_evidencia": {
+                    "type": "keyword"
+                },
+                "nombre": {
+                    "type": "text",
+                    "fields": {
+                        "keyword": {
+                            "type": "keyword"
+                        }
+                    }
+                },
+                "campos": {
+                    "type": "object",
+                    "properties": {
+                        "nombre_campo": {
+                            "type": "keyword"
+                        },
+                        "tipo_campo": {
+                            "type": "keyword"
+                        }
+                    }
+                },
+                "data": {
+                    "type": "object",
+                    "enabled": True
+                },
+                "activo": {
+                    "type": "boolean"
+                },
+                "fecha_creacion": {
+                    "type": "date"
+                },
+                "fecha_modificacion": {
+                    "type": "date"
+                },
+            }
+        }
+    }
+
     def get_elasticsearch_client(self):
         return get_elasticsearch_client()
 
-    def generar_nombre_indice(self):
-        uid = str(uuid.uuid4())
-        return f"{self.prefijo_aplicacion}_{self.contexto_indice}_{uid}"
+    def fecha_actual(self):
+        return timezone.now().isoformat()
 
     def normalizar_segmento_indice(self, valor):
         if not valor:
@@ -39,7 +87,9 @@ class EstructuraViewSet(ViewSet):
         return segmento
 
     def crear_indice_unico(self, cliente, tipo_evidencia=None):
-        tipo_evidencia_normalizado = self.normalizar_segmento_indice(tipo_evidencia)
+        tipo_evidencia_normalizado = self.normalizar_segmento_indice(
+            tipo_evidencia
+        )
 
         for _ in range(5):
             uid = str(uuid.uuid4())
@@ -51,7 +101,10 @@ class EstructuraViewSet(ViewSet):
             )
 
             try:
-                cliente.indices.create(index=nombre_indice)
+                cliente.indices.create(
+                    index=nombre_indice,
+                    body=self.estructura_mapping
+                )
                 return nombre_indice
             except Exception:
                 continue
@@ -79,6 +132,8 @@ class EstructuraViewSet(ViewSet):
             "tipo_evidencia": data.get("tipo_evidencia"),
             "nombre": data.get("nombre"),
             "activo": data.get("activo", True),
+            "fecha_creacion": data.get("fecha_creacion"),
+            "fecha_modificacion": data.get("fecha_modificacion"),
         }
 
     def guardar_documento_estructura(self, cliente, estructura):
@@ -193,7 +248,8 @@ class EstructuraViewSet(ViewSet):
             id=aspecto_id,
             body={
                 "doc": {
-                    "estructuras_evidencias": estructuras_actualizadas
+                    "estructuras_evidencias": estructuras_actualizadas,
+                    "fecha_modificacion": self.fecha_actual(),
                 }
             },
             refresh=True
@@ -243,7 +299,8 @@ class EstructuraViewSet(ViewSet):
             id=aspecto_id,
             body={
                 "doc": {
-                    "estructuras_evidencias": estructuras_actualizadas
+                    "estructuras_evidencias": estructuras_actualizadas,
+                    "fecha_modificacion": self.fecha_actual(),
                 }
             },
             refresh=True
@@ -254,7 +311,8 @@ class EstructuraViewSet(ViewSet):
     def desactivar_estructura_en_aspecto(
         self,
         cliente,
-        estructura_id
+        estructura_id,
+        estructura_actualizada=None
     ):
         aspecto_id, aspecto = self.buscar_aspecto_por_estructura(
             cliente,
@@ -271,13 +329,15 @@ class EstructuraViewSet(ViewSet):
 
         for item in estructuras:
             if isinstance(item, dict) and item.get("id") == estructura_id:
-                estructura_actualizada = {
-                    **item,
+                base = estructura_actualizada or item
+
+                estructura_desactivada = {
+                    **base,
                     "activo": False,
                 }
 
                 estructuras_actualizadas.append(
-                    self.normalizar_estructura(estructura_actualizada)
+                    self.normalizar_estructura(estructura_desactivada)
                 )
 
                 encontrada = True
@@ -292,7 +352,8 @@ class EstructuraViewSet(ViewSet):
             id=aspecto_id,
             body={
                 "doc": {
-                    "estructuras_evidencias": estructuras_actualizadas
+                    "estructuras_evidencias": estructuras_actualizadas,
+                    "fecha_modificacion": self.fecha_actual(),
                 }
             },
             refresh=True
@@ -423,14 +484,18 @@ class EstructuraViewSet(ViewSet):
                 data.get("tipo_evidencia")
             )
 
+            fecha_actual = self.fecha_actual()
+
             estructura = {
                 "id": indice_id,
                 "aspecto_id": aspecto_id,
                 "tipo_evidencia": data.get("tipo_evidencia"),
                 "nombre": data.get("nombre"),
-                "activo": data.get("activo", True),
                 "campos": data.get("campos", []),
                 "data": data.get("data", []),
+                "activo": data.get("activo", True),
+                "fecha_creacion": fecha_actual,
+                "fecha_modificacion": fecha_actual,
             }
 
             self.guardar_documento_estructura(cliente, estructura)
@@ -500,6 +565,7 @@ class EstructuraViewSet(ViewSet):
                 **estructura_actual,
                 **data,
                 "id": pk,
+                "fecha_modificacion": self.fecha_actual(),
             }
 
             if campos_eliminados_data:
@@ -508,7 +574,7 @@ class EstructuraViewSet(ViewSet):
                     campos_eliminados_data
                 )
 
-            self.actualizar_documento_estructura(
+            estructura_actualizada = self.actualizar_documento_estructura(
                 cliente,
                 pk,
                 estructura_actualizada
@@ -576,9 +642,10 @@ class EstructuraViewSet(ViewSet):
             estructura_actualizada = {
                 **estructura_actual,
                 "activo": False,
+                "fecha_modificacion": self.fecha_actual(),
             }
 
-            self.actualizar_documento_estructura(
+            estructura_actualizada = self.actualizar_documento_estructura(
                 cliente,
                 pk,
                 estructura_actualizada
@@ -586,7 +653,8 @@ class EstructuraViewSet(ViewSet):
 
             aspecto_id, estructuras_actualizadas = self.desactivar_estructura_en_aspecto(
                 cliente,
-                pk
+                pk,
+                estructura_actualizada
             )
 
             if estructuras_actualizadas is None:
