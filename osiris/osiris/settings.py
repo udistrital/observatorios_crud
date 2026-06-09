@@ -55,6 +55,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 ALLOWED_HOSTS = [
+    "pruebasapi.intranetoas.udistrital.edu.co",
     "pruebasatlas.portaloas.udistrital.edu.co",
     "172.30.5.251",
     "localhost",
