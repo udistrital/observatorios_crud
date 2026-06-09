@@ -1,90 +1,112 @@
-import base64
-import ipaddress
-import json
 import re
+import uuid
 from datetime import datetime
 
 
-ELASTICSEARCH_CAMPOS = {
-    "text": {"label": "Texto", "value": "text"},
-    "keyword": {"label": "Palabra clave", "value": "keyword"},
-    "long": {"label": "Largo", "value": "long"},
-    "integer": {"label": "Entero", "value": "integer"},
-    "short": {"label": "Corto", "value": "short"},
-    "byte": {"label": "Byte", "value": "byte"},
-    "double": {"label": "Doble", "value": "double"},
-    "float": {"label": "Flotante", "value": "float"},
-    "half_float": {"label": "Medio flotante", "value": "half_float"},
-    "scaled_float": {"label": "Flotante escalado", "value": "scaled_float"},
-    "boolean": {"label": "Booleano", "value": "boolean"},
-    "date": {"label": "Fecha", "value": "date"},
-    "date_nanos": {"label": "Fecha con nanosegundos", "value": "date_nanos"},
-    "geo_point": {"label": "Punto geográfico", "value": "geo_point"},
-    "geo_shape": {"label": "Forma geográfica", "value": "geo_shape"},
-    "ip": {"label": "Dirección IP", "value": "ip"},
-    "binary": {"label": "Binario", "value": "binary"},
-    "object": {"label": "Objeto", "value": "object"},
-    "nested": {"label": "Anidado", "value": "nested"},
-    "token_count": {"label": "Conteo de tokens", "value": "token_count"},
-    "integer_range": {"label": "Rango de enteros", "value": "integer_range"},
-    "float_range": {"label": "Rango de flotantes", "value": "float_range"},
-    "long_range": {"label": "Rango de largos", "value": "long_range"},
-    "double_range": {"label": "Rango de dobles", "value": "double_range"},
-    "date_range": {"label": "Rango de fechas", "value": "date_range"},
-    "ip_range": {"label": "Rango de IPs", "value": "ip_range"},
-    "constant_keyword": {
-        "label": "Palabra clave constante",
-        "value": "constant_keyword",
-    },
-    "flattened": {"label": "Aplanado", "value": "flattened"},
-    "shape": {"label": "Forma", "value": "shape"},
-}
-
-
-TIPOS_TEXTO = {
+TIPOS_CAMPOS_PERMITIDOS = [
     "text",
     "keyword",
-    "constant_keyword",
-    "token_count",
-}
-
-TIPOS_ENTEROS = {
-    "long": None,
-    "integer": (-2147483648, 2147483647),
-    "short": (-32768, 32767),
-    "byte": (-128, 127),
-}
-
-TIPOS_DECIMALES = {
+    "long",
+    "integer",
+    "short",
+    "byte",
     "double",
     "float",
     "half_float",
     "scaled_float",
-}
-
-TIPOS_JSON = {
+    "boolean",
+    "date",
+    "date_nanos",
+    "geo_point",
+    "geo_shape",
+    "ip",
+    "binary",
     "object",
     "nested",
-    "flattened",
-    "geo_shape",
-    "shape",
-}
-
-TIPOS_RANGO = {
+    "token_count",
     "integer_range",
     "float_range",
     "long_range",
     "double_range",
     "date_range",
     "ip_range",
-}
+    "constant_keyword",
+    "flattened",
+    "shape",
+]
 
 
-def obtener_tipos_campos():
-    return list(ELASTICSEARCH_CAMPOS.values())
+def generar_campo_id():
+    return f"campo_{uuid.uuid4().hex[:12]}"
+
+
+def obtener_mapping_tipo_campo(tipo_campo):
+    if tipo_campo == "text":
+        return {
+            "type": "text",
+            "fields": {
+                "keyword": {
+                    "type": "keyword"
+                }
+            }
+        }
+
+    if tipo_campo in ["keyword", "constant_keyword"]:
+        return {
+            "type": tipo_campo
+        }
+
+    if tipo_campo == "token_count":
+        return {
+            "type": "token_count",
+            "analyzer": "standard"
+        }
+
+    if tipo_campo == "scaled_float":
+        return {
+            "type": "scaled_float",
+            "scaling_factor": 100
+        }
+
+    if tipo_campo in [
+        "long",
+        "integer",
+        "short",
+        "byte",
+        "double",
+        "float",
+        "half_float",
+        "boolean",
+        "date",
+        "date_nanos",
+        "geo_point",
+        "geo_shape",
+        "ip",
+        "binary",
+        "object",
+        "nested",
+        "integer_range",
+        "float_range",
+        "long_range",
+        "double_range",
+        "date_range",
+        "ip_range",
+        "flattened",
+        "shape",
+    ]:
+        return {
+            "type": tipo_campo
+        }
+
+    return {
+        "type": "keyword"
+    }
 
 
 def validar_nombre_campo(nombre_campo):
+    if not nombre_campo:
+        raise ValueError("El nombre del campo es obligatorio.")
+
     if not isinstance(nombre_campo, str):
         raise ValueError("El nombre del campo debe ser texto.")
 
@@ -93,330 +115,371 @@ def validar_nombre_campo(nombre_campo):
     if not nombre_campo:
         raise ValueError("El nombre del campo es obligatorio.")
 
-    if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", nombre_campo):
-        raise ValueError(
-            "El nombre del campo solo puede tener letras, números y guion bajo. "
-            "Debe iniciar con letra o guion bajo."
-        )
-
     return nombre_campo
 
 
-def validar_tipo_campo(tipo_campo):
-    if not isinstance(tipo_campo, str):
-        raise ValueError("El tipo del campo debe ser texto.")
+def normalizar_tipo_campo(tipo_campo):
+    if not tipo_campo:
+        return "text"
 
-    tipo_campo = tipo_campo.strip()
+    tipo_campo = str(tipo_campo).strip()
 
-    if tipo_campo not in ELASTICSEARCH_CAMPOS:
+    if tipo_campo not in TIPOS_CAMPOS_PERMITIDOS:
         raise ValueError(
-            f"Tipo de campo inválido '{tipo_campo}'. "
-            f"Permitidos: {list(ELASTICSEARCH_CAMPOS.keys())}"
+            f"El tipo de campo '{tipo_campo}' no está permitido."
         )
 
     return tipo_campo
 
 
-def normalizar_campos(campos):
-    if campos is None:
-        return []
-
-    if not isinstance(campos, list):
-        raise ValueError("El campo campos debe ser una lista.")
-
-    resultado = []
-    nombres = set()
-
-    for campo in campos:
-        if not isinstance(campo, dict):
-            raise ValueError("Cada campo debe ser un objeto.")
-
-        nombre_campo = validar_nombre_campo(campo.get("nombre_campo"))
-        tipo_campo = validar_tipo_campo(campo.get("tipo_campo", "text"))
-
-        nombre_normalizado = nombre_campo.lower()
-
-        if nombre_normalizado in nombres:
-            raise ValueError(f"El campo '{nombre_campo}' está repetido.")
-
-        nombres.add(nombre_normalizado)
-
-        resultado.append(
-            {
-                "nombre_campo": nombre_campo,
-                "tipo_campo": tipo_campo,
-            }
-        )
-
-    return resultado
-
-
-def normalizar_fecha(valor):
+def convertir_valor_por_tipo(valor, tipo_campo):
     if valor in [None, ""]:
         return None
 
-    if isinstance(valor, datetime):
-        return valor.date().isoformat()
-
-    formatos = [
-        "%Y-%m-%d",
-        "%d/%m/%Y",
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%dT%H:%M:%S.%f",
-    ]
-
-    for formato in formatos:
-        try:
-            return datetime.strptime(str(valor), formato).date().isoformat()
-        except ValueError:
-            continue
-
-    raise ValueError("Debe tener formato YYYY-MM-DD o DD/MM/YYYY.")
-
-
-def validar_entero(nombre_campo, tipo_campo, valor):
-    if valor in [None, ""]:
-        return None
-
-    if isinstance(valor, bool):
-        raise ValueError(f"El campo '{nombre_campo}' debe ser entero.")
-
-    try:
-        numero = int(valor)
-    except Exception:
-        raise ValueError(f"El campo '{nombre_campo}' debe ser entero.")
-
-    rango = TIPOS_ENTEROS.get(tipo_campo)
-
-    if rango:
-        minimo, maximo = rango
-
-        if numero < minimo or numero > maximo:
-            raise ValueError(
-                f"El campo '{nombre_campo}' debe estar entre {minimo} y {maximo}."
-            )
-
-    return numero
-
-
-def validar_decimal(nombre_campo, valor):
-    if valor in [None, ""]:
-        return None
-
-    if isinstance(valor, bool):
-        raise ValueError(f"El campo '{nombre_campo}' debe ser numérico.")
-
-    try:
-        return float(valor)
-    except Exception:
-        raise ValueError(f"El campo '{nombre_campo}' debe ser numérico.")
-
-
-def validar_booleano(nombre_campo, valor):
-    if valor in [None, ""]:
-        return None
-
-    if isinstance(valor, bool):
-        return valor
-
-    if isinstance(valor, str):
-        valor_normalizado = valor.strip().lower()
-
-        if valor_normalizado in ["true", "1", "si", "sí"]:
-            return True
-
-        if valor_normalizado in ["false", "0", "no"]:
-            return False
-
-    raise ValueError(f"El campo '{nombre_campo}' debe ser booleano.")
-
-
-def validar_ip(nombre_campo, valor):
-    if valor in [None, ""]:
-        return None
-
-    try:
-        return str(ipaddress.ip_address(valor))
-    except Exception:
-        raise ValueError(f"El campo '{nombre_campo}' debe ser una IP válida.")
-
-
-def validar_binary(nombre_campo, valor):
-    if valor in [None, ""]:
-        return None
-
-    if not isinstance(valor, str):
-        raise ValueError(f"El campo '{nombre_campo}' debe ser base64.")
-
-    try:
-        base64.b64decode(valor, validate=True)
-        return valor
-    except Exception:
-        raise ValueError(f"El campo '{nombre_campo}' debe ser base64 válido.")
-
-
-def normalizar_json(nombre_campo, valor):
-    if valor in [None, ""]:
-        return None
-
-    if isinstance(valor, (dict, list)):
-        return valor
-
-    if isinstance(valor, str):
-        try:
-            return json.loads(valor)
-        except Exception:
-            raise ValueError(f"El campo '{nombre_campo}' debe ser JSON válido.")
-
-    raise ValueError(f"El campo '{nombre_campo}' debe ser un objeto o arreglo JSON.")
-
-
-def validar_geo_point(nombre_campo, valor):
-    if valor in [None, ""]:
-        return None
-
-    if isinstance(valor, dict):
-        if "lat" not in valor or "lon" not in valor:
-            raise ValueError(
-                f"El campo '{nombre_campo}' debe contener lat y lon."
-            )
-
-        return {
-            "lat": float(valor["lat"]),
-            "lon": float(valor["lon"]),
-        }
-
-    if isinstance(valor, str):
-        partes = valor.split(",")
-
-        if len(partes) != 2:
-            raise ValueError(
-                f"El campo '{nombre_campo}' debe tener formato 'lat,lon'."
-            )
-
-        return {
-            "lat": float(partes[0].strip()),
-            "lon": float(partes[1].strip()),
-        }
-
-    raise ValueError(
-        f"El campo '{nombre_campo}' debe ser un objeto {{lat, lon}} o texto 'lat,lon'."
-    )
-
-
-def validar_rango(nombre_campo, tipo_campo, valor):
-    valor = normalizar_json(nombre_campo, valor)
-
-    if valor is None:
-        return None
-
-    if not isinstance(valor, dict):
-        raise ValueError(f"El campo '{nombre_campo}' debe ser un objeto de rango.")
-
-    claves_validas = {"gte", "gt", "lte", "lt"}
-
-    if not any(clave in valor for clave in claves_validas):
-        raise ValueError(
-            f"El campo '{nombre_campo}' debe tener al menos gte, gt, lte o lt."
-        )
-
-    resultado = {}
-
-    for clave, dato in valor.items():
-        if clave not in claves_validas:
-            raise ValueError(
-                f"El campo '{nombre_campo}' tiene una clave inválida: {clave}."
-            )
-
-        if tipo_campo == "date_range":
-            resultado[clave] = normalizar_fecha(dato)
-        elif tipo_campo == "ip_range":
-            resultado[clave] = validar_ip(nombre_campo, dato)
-        elif tipo_campo in ["integer_range", "long_range"]:
-            resultado[clave] = validar_entero(nombre_campo, "long", dato)
-        else:
-            resultado[clave] = validar_decimal(nombre_campo, dato)
-
-    return resultado
-
-
-def validar_valor_por_tipo(nombre_campo, tipo_campo, valor):
-    if tipo_campo in TIPOS_TEXTO:
-        if valor in [None, ""]:
-            return None
-
+    if tipo_campo in ["text", "keyword", "constant_keyword"]:
         return str(valor)
 
-    if tipo_campo in TIPOS_ENTEROS:
-        return validar_entero(nombre_campo, tipo_campo, valor)
+    if tipo_campo in ["integer", "long", "short", "byte"]:
+        try:
+            return int(valor)
+        except Exception:
+            raise ValueError("Debe ser un número entero.")
 
-    if tipo_campo in TIPOS_DECIMALES:
-        return validar_decimal(nombre_campo, valor)
+    if tipo_campo in ["double", "float", "half_float", "scaled_float"]:
+        try:
+            return float(valor)
+        except Exception:
+            raise ValueError("Debe ser un número decimal.")
 
     if tipo_campo == "boolean":
-        return validar_booleano(nombre_campo, valor)
+        if isinstance(valor, bool):
+            return valor
+
+        if isinstance(valor, str):
+            valor_normalizado = valor.strip().lower()
+
+            if valor_normalizado in ["true", "1", "si", "sí"]:
+                return True
+
+            if valor_normalizado in ["false", "0", "no"]:
+                return False
+
+        raise ValueError("Debe ser verdadero o falso.")
 
     if tipo_campo in ["date", "date_nanos"]:
-        return normalizar_fecha(valor)
+        if not isinstance(valor, str):
+            raise ValueError("Debe ser una fecha válida.")
 
-    if tipo_campo == "ip":
-        return validar_ip(nombre_campo, valor)
+        valor = valor.strip()
 
-    if tipo_campo == "binary":
-        return validar_binary(nombre_campo, valor)
+        formatos = [
+            "%Y-%m-%d",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%S%z",
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+            "%d/%m/%Y",
+        ]
 
-    if tipo_campo == "geo_point":
-        return validar_geo_point(nombre_campo, valor)
+        for formato in formatos:
+            try:
+                datetime.strptime(valor, formato)
+                return valor
+            except Exception:
+                continue
 
-    if tipo_campo in TIPOS_JSON:
-        return normalizar_json(nombre_campo, valor)
-
-    if tipo_campo in TIPOS_RANGO:
-        return validar_rango(nombre_campo, tipo_campo, valor)
-
-    if valor in [None, ""]:
-        return None
+        raise ValueError("Debe tener formato YYYY-MM-DD, ISO 8601 o DD/MM/YYYY.")
 
     return valor
 
 
-def obtener_campos_por_nombre(campos):
-    return {
-        campo["nombre_campo"]: campo
-        for campo in normalizar_campos(campos)
+def normalizar_campos_con_ids(campos_entrantes, campos_actuales=None):
+    campos_actuales = campos_actuales or []
+    campos_entrantes = campos_entrantes or []
+
+    campos_actuales_por_id = {
+        campo.get("campo_id"): campo
+        for campo in campos_actuales
+        if campo.get("campo_id")
     }
 
+    campos_resultado = []
+    migraciones = []
 
-def validar_registro_con_campos(campos, data):
-    if not isinstance(data, dict):
+    for index, campo in enumerate(campos_entrantes, start=1):
+        nombre_campo = validar_nombre_campo(campo.get("nombre_campo"))
+        tipo_campo = normalizar_tipo_campo(campo.get("tipo_campo", "text"))
+        campo_id = campo.get("campo_id")
+        orden = campo.get("orden") or index
+        activo = campo.get("activo", True)
+        migrar_data = campo.get("migrar_data", False)
+
+        if campo_id and campo_id in campos_actuales_por_id:
+            campo_actual = campos_actuales_por_id[campo_id]
+            tipo_actual = campo_actual.get("tipo_campo")
+
+            if tipo_actual == tipo_campo:
+                campos_resultado.append(
+                    {
+                        "campo_id": campo_id,
+                        "orden": orden,
+                        "nombre_campo": nombre_campo,
+                        "tipo_campo": tipo_campo,
+                        "activo": activo,
+                    }
+                )
+            else:
+                nuevo_campo_id = generar_campo_id()
+
+                campos_resultado.append(
+                    {
+                        "campo_id": nuevo_campo_id,
+                        "orden": orden,
+                        "nombre_campo": nombre_campo,
+                        "tipo_campo": tipo_campo,
+                        "activo": activo,
+                    }
+                )
+
+                migraciones.append(
+                    {
+                        "campo_anterior_id": campo_id,
+                        "campo_nuevo_id": nuevo_campo_id,
+                        "tipo_nuevo": tipo_campo,
+                        "migrar_data": bool(migrar_data),
+                    }
+                )
+        else:
+            nuevo_campo_id = campo_id or generar_campo_id()
+
+            campos_resultado.append(
+                {
+                    "campo_id": nuevo_campo_id,
+                    "orden": orden,
+                    "nombre_campo": nombre_campo,
+                    "tipo_campo": tipo_campo,
+                    "activo": activo,
+                }
+            )
+
+    campos_resultado = sorted(
+        campos_resultado,
+        key=lambda item: item.get("orden") or 999999
+    )
+
+    return campos_resultado, migraciones
+
+
+def construir_valores_registro(campos, data_usuario):
+    if not isinstance(data_usuario, dict):
         raise ValueError("El registro debe ser un objeto JSON.")
 
-    campos_por_nombre = obtener_campos_por_nombre(campos)
+    valores_entrada = data_usuario.get("valores")
 
-    errores = {}
-    registro = {}
+    if not isinstance(valores_entrada, dict):
+        valores_entrada = data_usuario
 
-    for clave in data.keys():
-        if clave not in campos_por_nombre:
-            errores[clave] = "Este campo no existe en la estructura."
+    valores = {}
 
-    for nombre_campo, campo in campos_por_nombre.items():
+    for campo in campos or []:
+        if campo.get("activo") is False:
+            continue
+
+        campo_id = campo.get("campo_id")
+        nombre_campo = campo.get("nombre_campo")
         tipo_campo = campo.get("tipo_campo", "text")
-        valor = data.get(nombre_campo)
+
+        if not campo_id:
+            continue
+
+        valor = None
+
+        if campo_id in valores_entrada:
+            valor = valores_entrada.get(campo_id)
+        elif nombre_campo in valores_entrada:
+            valor = valores_entrada.get(nombre_campo)
 
         try:
-            registro[nombre_campo] = validar_valor_por_tipo(
-                nombre_campo,
-                tipo_campo,
-                valor
+            valores[campo_id] = convertir_valor_por_tipo(
+                valor,
+                tipo_campo
             )
         except ValueError as error:
-            errores[nombre_campo] = str(error)
+            raise ValueError(
+                {
+                    nombre_campo: error.args[0]
+                }
+            )
 
-    if errores:
-        raise ValueError(errores)
+    return valores
 
-    return registro
+
+def aplicar_migraciones_data(data, migraciones, campos):
+    if not migraciones:
+        return data
+
+    campos_por_id = {
+        campo.get("campo_id"): campo
+        for campo in campos or []
+        if campo.get("campo_id")
+    }
+
+    data_resultado = []
+
+    for fila in data or []:
+        if not isinstance(fila, dict):
+            continue
+
+        valores = fila.get("valores", {})
+
+        if not isinstance(valores, dict):
+            valores = {}
+
+        for migracion in migraciones:
+            campo_anterior_id = migracion.get("campo_anterior_id")
+            campo_nuevo_id = migracion.get("campo_nuevo_id")
+            migrar_data = migracion.get("migrar_data", False)
+
+            valor_anterior = valores.pop(campo_anterior_id, None)
+
+            if migrar_data and campo_nuevo_id:
+                campo_nuevo = campos_por_id.get(campo_nuevo_id)
+
+                if campo_nuevo:
+                    try:
+                        valores[campo_nuevo_id] = convertir_valor_por_tipo(
+                            valor_anterior,
+                            campo_nuevo.get("tipo_campo")
+                        )
+                    except ValueError:
+                        valores[campo_nuevo_id] = None
+
+        fila["valores"] = valores
+        data_resultado.append(fila)
+
+    return data_resultado
+
+def obtener_tipos_campos():
+    return [
+        {"label": "Texto", "value": "text"},
+        {"label": "Palabra clave", "value": "keyword"},
+        {"label": "Largo", "value": "long"},
+        {"label": "Entero", "value": "integer"},
+        {"label": "Corto", "value": "short"},
+        {"label": "Byte", "value": "byte"},
+        {"label": "Doble", "value": "double"},
+        {"label": "Flotante", "value": "float"},
+        {"label": "Medio flotante", "value": "half_float"},
+        {"label": "Flotante escalado", "value": "scaled_float"},
+        {"label": "Booleano", "value": "boolean"},
+        {"label": "Fecha", "value": "date"},
+        {"label": "Fecha con nanosegundos", "value": "date_nanos"},
+        {"label": "Punto geográfico", "value": "geo_point"},
+        {"label": "Forma geográfica", "value": "geo_shape"},
+        {"label": "Dirección IP", "value": "ip"},
+        {"label": "Binario", "value": "binary"},
+        {"label": "Objeto", "value": "object"},
+        {"label": "Anidado", "value": "nested"},
+        {"label": "Conteo de tokens", "value": "token_count"},
+        {"label": "Rango de enteros", "value": "integer_range"},
+        {"label": "Rango de flotantes", "value": "float_range"},
+        {"label": "Rango de largos", "value": "long_range"},
+        {"label": "Rango de dobles", "value": "double_range"},
+        {"label": "Rango de fechas", "value": "date_range"},
+        {"label": "Rango de IPs", "value": "ip_range"},
+        {"label": "Palabra clave constante", "value": "constant_keyword"},
+        {"label": "Aplanado", "value": "flattened"},
+        {"label": "Forma", "value": "shape"},
+    ]
+
+def aplicar_filtros(filas, query_params):
+    if not isinstance(filas, list):
+        return []
+
+    filtros_excluidos = {
+        "page",
+        "page_size",
+        "ordering",
+        "format",
+    }
+
+    resultado = filas
+
+    for clave, valor in query_params.items():
+        if clave in filtros_excluidos:
+            continue
+
+        if valor in [None, ""]:
+            continue
+
+        valor_busqueda = str(valor).lower()
+
+        resultado = [
+            fila
+            for fila in resultado
+            if valor_busqueda in str(fila.get(clave, "")).lower()
+        ]
+
+    return resultado
+
+
+def aplicar_ordenamiento(filas, ordering=None):
+    if not ordering:
+        return filas
+
+    if not isinstance(filas, list):
+        return []
+
+    descendente = False
+    campo = ordering
+
+    if ordering.startswith("-"):
+        descendente = True
+        campo = ordering[1:]
+
+    try:
+        return sorted(
+            filas,
+            key=lambda fila: (
+                fila.get(campo) is None,
+                fila.get(campo)
+            ),
+            reverse=descendente
+        )
+    except Exception:
+        return filas
+
+
+def paginar_resultados(filas, page=1, page_size=10):
+    if not isinstance(filas, list):
+        filas = []
+
+    try:
+        page = int(page)
+    except Exception:
+        page = 1
+
+    try:
+        page_size = int(page_size)
+    except Exception:
+        page_size = 10
+
+    if page < 1:
+        page = 1
+
+    if page_size < 1:
+        page_size = 10
+
+    total = len(filas)
+    inicio = (page - 1) * page_size
+    fin = inicio + page_size
+
+    return {
+        "count": total,
+        "page": page,
+        "page_size": page_size,
+        "results": filas[inicio:fin],
+    }
 
 
 def eliminar_campos_de_data(data, campos_eliminados):
@@ -426,7 +489,6 @@ def eliminar_campos_de_data(data, campos_eliminados):
     if not campos_eliminados:
         return data
 
-    campos_eliminados = set(campos_eliminados)
     resultado = []
 
     for fila in data:
@@ -434,72 +496,17 @@ def eliminar_campos_de_data(data, campos_eliminados):
             resultado.append(fila)
             continue
 
-        nueva_fila = {
-            clave: valor
-            for clave, valor in fila.items()
-            if clave not in campos_eliminados
-        }
+        valores = fila.get("valores")
 
-        resultado.append(nueva_fila)
+        if isinstance(valores, dict):
+            for campo in campos_eliminados:
+                valores.pop(campo, None)
 
-    return resultado
+            fila["valores"] = valores
 
+        for campo in campos_eliminados:
+            fila.pop(campo, None)
 
-def aplicar_filtros(filas, params):
-    filtros = {
-        clave: valor
-        for clave, valor in params.items()
-        if clave not in ["page", "page_size", "ordering"]
-        and valor not in [None, ""]
-    }
-
-    if not filtros:
-        return filas
-
-    resultado = []
-
-    for fila in filas:
-        cumple = True
-
-        for clave, valor in filtros.items():
-            valor_fila = fila.get(clave)
-
-            if valor_fila is None:
-                cumple = False
-                break
-
-            if str(valor).lower() not in str(valor_fila).lower():
-                cumple = False
-                break
-
-        if cumple:
-            resultado.append(fila)
+        resultado.append(fila)
 
     return resultado
-
-
-def aplicar_ordenamiento(filas, ordering):
-    if not ordering:
-        return filas
-
-    descendente = ordering.startswith("-")
-    campo = ordering[1:] if descendente else ordering
-
-    return sorted(
-        filas,
-        key=lambda item: item.get(campo) if item.get(campo) is not None else "",
-        reverse=descendente
-    )
-
-
-def paginar_resultados(filas, page, page_size):
-    total = len(filas)
-    inicio = (page - 1) * page_size
-    fin = inicio + page_size
-
-    return {
-        "count": total,
-        "next": page + 1 if fin < total else None,
-        "previous": page - 1 if inicio > 0 else None,
-        "results": filas[inicio:fin],
-    }
