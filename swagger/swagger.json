@@ -1,0 +1,1747 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Atlas CRUD",
+        "description": "Documentación de la API de observatorios de la universidad Distrital Francisco Jose de Caldas",
+        "license": {
+            "name": "Licencia MIT"
+        },
+        "version": "v1"
+    },
+    "basePath": "/",
+    "consumes": [
+        "application/json"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "securityDefinitions": {
+        "Basic": {
+            "type": "basic"
+        }
+    },
+    "security": [
+        {
+            "Basic": []
+        }
+    ],
+    "paths": {
+        "/aspectos/": {
+            "get": {
+                "operationId": "Aspectos_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Aspectos"
+                ]
+            },
+            "post": {
+                "operationId": "Aspectos_create",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Aspectos"
+                ]
+            },
+            "parameters": []
+        },
+        "/aspectos/{id}/": {
+            "get": {
+                "operationId": "Aspectos_read",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Aspectos"
+                ]
+            },
+            "put": {
+                "operationId": "Aspectos_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Aspectos"
+                ]
+            },
+            "patch": {
+                "operationId": "Aspectos_partial_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Aspectos"
+                ]
+            },
+            "delete": {
+                "operationId": "Aspectos_delete",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Aspectos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/campos/archivos/{id}/": {
+            "get": {
+                "operationId": "Campos_archivos_read",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "post": {
+                "operationId": "Campos_archivos_create",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "put": {
+                "operationId": "Campos_archivos_update",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "patch": {
+                "operationId": "Campos_archivos_partial_update",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "delete": {
+                "operationId": "Campos_archivos_delete",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/campos/archivos/{id}/{id_documento}/": {
+            "get": {
+                "operationId": "Campos_archivos_read",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "post": {
+                "operationId": "Campos_archivos_create",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "put": {
+                "operationId": "Campos_archivos_update",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "patch": {
+                "operationId": "Campos_archivos_partial_update",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "delete": {
+                "operationId": "Campos_archivos_delete",
+                "summary": "Se conserva la clase para no romper imports/rutas existentes.",
+                "description": "En el nuevo contrato no se maneja mapeo_archivos.\nSi el cliente consume /archivos/, se comporta igual que /datos/.",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "id_documento",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/campos/datos/{id}/": {
+            "get": {
+                "operationId": "Campos_datos_read",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "post": {
+                "operationId": "Campos_datos_create",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "put": {
+                "operationId": "Campos_datos_update",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "patch": {
+                "operationId": "Campos_datos_partial_update",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "delete": {
+                "operationId": "Campos_datos_delete",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/campos/datos/{id}/{id_documento}/": {
+            "get": {
+                "operationId": "Campos_datos_read",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "post": {
+                "operationId": "Campos_datos_create",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "put": {
+                "operationId": "Campos_datos_update",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "patch": {
+                "operationId": "Campos_datos_partial_update",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "delete": {
+                "operationId": "Campos_datos_delete",
+                "summary": "Maneja la data guardada dentro del documento de la estructura.",
+                "description": "GET    /campos/datos/<id_estructura>/\nPOST   /campos/datos/<id_estructura>/\nPUT    /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/<id_registro>/\nDELETE /campos/datos/<id_estructura>/",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "id_documento",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/campos/estructuras/": {
+            "get": {
+                "operationId": "Campos_estructuras_list",
+                "summary": "ViewSet para consultar o actualizar los campos y la data de una estructura.",
+                "description": "No crea estructuras nuevas. La creación inicial se realiza desde apps.estructuras.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "post": {
+                "operationId": "Campos_estructuras_create",
+                "summary": "ViewSet para consultar o actualizar los campos y la data de una estructura.",
+                "description": "No crea estructuras nuevas. La creación inicial se realiza desde apps.estructuras.",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "parameters": []
+        },
+        "/campos/estructuras/{id}/": {
+            "get": {
+                "operationId": "Campos_estructuras_read",
+                "summary": "ViewSet para consultar o actualizar los campos y la data de una estructura.",
+                "description": "No crea estructuras nuevas. La creación inicial se realiza desde apps.estructuras.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "put": {
+                "operationId": "Campos_estructuras_update",
+                "summary": "ViewSet para consultar o actualizar los campos y la data de una estructura.",
+                "description": "No crea estructuras nuevas. La creación inicial se realiza desde apps.estructuras.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "patch": {
+                "operationId": "Campos_estructuras_partial_update",
+                "summary": "ViewSet para consultar o actualizar los campos y la data de una estructura.",
+                "description": "No crea estructuras nuevas. La creación inicial se realiza desde apps.estructuras.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "delete": {
+                "operationId": "Campos_estructuras_delete",
+                "summary": "ViewSet para consultar o actualizar los campos y la data de una estructura.",
+                "description": "No crea estructuras nuevas. La creación inicial se realiza desde apps.estructuras.",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/campos/tipos": {
+            "get": {
+                "operationId": "Campos_tipos_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Campos"
+                ]
+            },
+            "parameters": []
+        },
+        "/caracteristicas/": {
+            "get": {
+                "operationId": "Caracteristicas_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Caracteristicas"
+                ]
+            },
+            "post": {
+                "operationId": "Caracteristicas_create",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Caracteristicas"
+                ]
+            },
+            "parameters": []
+        },
+        "/caracteristicas/{id}/": {
+            "get": {
+                "operationId": "Caracteristicas_read",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Caracteristicas"
+                ]
+            },
+            "put": {
+                "operationId": "Caracteristicas_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Caracteristicas"
+                ]
+            },
+            "patch": {
+                "operationId": "Caracteristicas_partial_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Caracteristicas"
+                ]
+            },
+            "delete": {
+                "operationId": "Caracteristicas_delete",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Caracteristicas"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/constructor_graficos/campos_sugeridos/": {
+            "get": {
+                "operationId": "Graficos_campos_sugeridos_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "parameters": []
+        },
+        "/constructor_graficos/configuracion_grafico/": {
+            "get": {
+                "operationId": "Graficos_configuracion_grafico_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "parameters": []
+        },
+        "/constructor_graficos/probar_configuracion/": {
+            "post": {
+                "operationId": "Graficos_probar_configuracion_create",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "parameters": []
+        },
+        "/constructor_graficos/tipo_operaciones/": {
+            "get": {
+                "operationId": "Graficos_tipo_operaciones_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "parameters": []
+        },
+        "/dashboards/": {
+            "get": {
+                "operationId": "Dashboards_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Dashboards"
+                ]
+            },
+            "post": {
+                "operationId": "Dashboards_create",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Dashboards"
+                ]
+            },
+            "parameters": []
+        },
+        "/dashboards/{id}/": {
+            "get": {
+                "operationId": "Dashboards_read",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Dashboards"
+                ]
+            },
+            "put": {
+                "operationId": "Dashboards_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Dashboards"
+                ]
+            },
+            "delete": {
+                "operationId": "Dashboards_delete",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Dashboards"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/datos/{estructura_id}/": {
+            "get": {
+                "operationId": "Datos_list",
+                "description": "Lista los datos de una estructura de datos",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Datos"
+                ]
+            },
+            "post": {
+                "operationId": "Datos_create",
+                "description": "Crea un dato dentro de una estructura o inserta masivamente un conjunto de datos ",
+                "parameters": [
+                    {
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/DatosSerializers"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/DatosSerializers"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Datos"
+                ]
+            },
+            "delete": {
+                "operationId": "Datos_delete",
+                "description": "Inactiva un campo en la estructura de campos",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Datos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "estructura_id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/datos/{estructura_id}/{id}/": {
+            "get": {
+                "operationId": "Datos_read",
+                "description": "Obtiene un item en especifico de la estructura de datos",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Datos"
+                ]
+            },
+            "put": {
+                "operationId": "Datos_update",
+                "description": "Actualiza un dato referente a una estructura de datos",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Datos"
+                ]
+            },
+            "delete": {
+                "operationId": "Datos_delete",
+                "description": "Inactiva un campo en la estructura de campos",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Datos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "estructura_id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/datosArchivo/{id_archivos}/": {
+            "get": {
+                "operationId": "Datos Archivo_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Datos Archivo"
+                ]
+            },
+            "post": {
+                "operationId": "Datos Archivo_create",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Datos Archivo"
+                ]
+            },
+            "delete": {
+                "operationId": "Datos Archivo_delete",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Datos Archivo"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id_archivos",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/datosArchivo/{id_archivos}/{id}/": {
+            "get": {
+                "operationId": "Datos Archivo_read",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Datos Archivo"
+                ]
+            },
+            "put": {
+                "operationId": "Datos Archivo_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Datos Archivo"
+                ]
+            },
+            "delete": {
+                "operationId": "Datos Archivo_delete",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Datos Archivo"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id_archivos",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/estructuras-evidencias/": {
+            "get": {
+                "operationId": "Estructuras Evidencias_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Estructuras Evidencias"
+                ]
+            },
+            "post": {
+                "operationId": "Estructuras Evidencias_create",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Estructuras Evidencias"
+                ]
+            },
+            "parameters": []
+        },
+        "/estructuras-evidencias/{id}/": {
+            "get": {
+                "operationId": "Estructuras Evidencias_read",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Estructuras Evidencias"
+                ]
+            },
+            "put": {
+                "operationId": "Estructuras Evidencias_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Estructuras Evidencias"
+                ]
+            },
+            "patch": {
+                "operationId": "Estructuras Evidencias_partial_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Estructuras Evidencias"
+                ]
+            },
+            "delete": {
+                "operationId": "Estructuras Evidencias_delete",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Estructuras Evidencias"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/factores/": {
+            "get": {
+                "operationId": "Factores_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Factores"
+                ]
+            },
+            "post": {
+                "operationId": "Factores_create",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Factores"
+                ]
+            },
+            "parameters": []
+        },
+        "/factores/{id}/": {
+            "get": {
+                "operationId": "Factores_read",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Factores"
+                ]
+            },
+            "put": {
+                "operationId": "Factores_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Factores"
+                ]
+            },
+            "patch": {
+                "operationId": "Factores_partial_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Factores"
+                ]
+            },
+            "delete": {
+                "operationId": "Factores_delete",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Factores"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/graficos/{dashboard_id}/": {
+            "get": {
+                "operationId": "Graficos_list",
+                "description": "Obtiene un observatorio en especifico",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Grafico"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "post": {
+                "operationId": "Graficos_create",
+                "description": "Crea un nuevo Grafico asociado a un dashboard",
+                "parameters": [
+                    {
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Grafico"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/Grafico"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "dashboard_id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/graficos/{dashboard_id}/{id}/": {
+            "get": {
+                "operationId": "Graficos_read",
+                "description": "Obtiene un grafico en especifico",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/Grafico"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "put": {
+                "operationId": "Graficos_update",
+                "description": "Actualiza un observatorio",
+                "parameters": [
+                    {
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Grafico"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/Grafico"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "delete": {
+                "operationId": "Graficos_delete",
+                "description": "Inactiva un observatorio",
+                "parameters": [
+                    {
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Grafico"
+                        }
+                    }
+                ],
+                "responses": {
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "dashboard_id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/graficos/{dashboard_id}/{id}/construir/": {
+            "get": {
+                "operationId": "Graficos_construir",
+                "description": "Construye el grafico a partir de la configuracion",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Graficos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "dashboard_id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/observatorios/": {
+            "get": {
+                "operationId": "Observatorios_list",
+                "description": "Obtiene un observatorio en especifico",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Observatorio"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Observatorios"
+                ]
+            },
+            "post": {
+                "operationId": "Observatorios_create",
+                "description": "Crea un nuevo observatorio",
+                "parameters": [
+                    {
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Observatorio"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/Observatorio"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Observatorios"
+                ]
+            },
+            "parameters": []
+        },
+        "/observatorios/{id}/": {
+            "get": {
+                "operationId": "Observatorios_read",
+                "description": "Obtiene un observatorio en especifico",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/Observatorio"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Observatorios"
+                ]
+            },
+            "put": {
+                "operationId": "Observatorios_update",
+                "description": "Actualiza un observatorio",
+                "parameters": [
+                    {
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Observatorio"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/Observatorio"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Observatorios"
+                ]
+            },
+            "delete": {
+                "operationId": "Observatorios_delete",
+                "description": "Inactiva un observatorio",
+                "parameters": [
+                    {
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Observatorio"
+                        }
+                    }
+                ],
+                "responses": {
+                    "400": {
+                        "description": "Solicitud inválida"
+                    }
+                },
+                "tags": [
+                    "Observatorios"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/procesos/": {
+            "get": {
+                "operationId": "Procesos_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Procesos"
+                ]
+            },
+            "post": {
+                "operationId": "Procesos_create",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Procesos"
+                ]
+            },
+            "parameters": []
+        },
+        "/procesos/{id}/": {
+            "get": {
+                "operationId": "Procesos_read",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Procesos"
+                ]
+            },
+            "put": {
+                "operationId": "Procesos_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Procesos"
+                ]
+            },
+            "patch": {
+                "operationId": "Procesos_partial_update",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Procesos"
+                ]
+            },
+            "delete": {
+                "operationId": "Procesos_delete",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Procesos"
+                ]
+            },
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ]
+        },
+        "/health/": {
+            "get": {
+                "operationId": "Health_list",
+                "description": "",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Health"
+                ]
+            },
+            "parameters": []
+        }
+    },
+    "definitions": {
+        "DatosSerializers": {
+            "type": "object",
+            "properties": {
+                "archivo": {
+                    "title": "Archivo",
+                    "type": "string",
+                    "readOnly": true,
+                    "x-nullable": true,
+                    "format": "uri"
+                },
+                "formato": {
+                    "title": "Formato",
+                    "type": "string",
+                    "enum": [
+                        "FORM",
+                        "JSON",
+                        "CSV"
+                    ],
+                    "default": "FORM"
+                }
+            }
+        },
+        "Grafico": {
+            "required": [
+                "nombre",
+                "descripcion",
+                "configuracion",
+                "columna",
+                "fila",
+                "estructura"
+            ],
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "title": "Activo",
+                    "type": "boolean",
+                    "default": true
+                },
+                "fecha_creacion": {
+                    "title": "Fecha creacion",
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "fecha_modificacion": {
+                    "title": "Fecha modificacion",
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "nombre": {
+                    "title": "Nombre",
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "descripcion": {
+                    "title": "Descripcion",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "configuracion": {
+                    "title": "Configuracion",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string",
+                        "x-nullable": true
+                    }
+                },
+                "columna": {
+                    "title": "Columna",
+                    "type": "integer"
+                },
+                "fila": {
+                    "title": "Fila",
+                    "type": "integer"
+                },
+                "estructura": {
+                    "title": "Estructura",
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
+        },
+        "Observatorio": {
+            "required": [
+                "nombre",
+                "descripcion"
+            ],
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "title": "Activo",
+                    "type": "boolean",
+                    "default": true
+                },
+                "imagen": {
+                    "title": "Imagen",
+                    "type": "string",
+                    "readOnly": true,
+                    "format": "uri"
+                },
+                "nombre": {
+                    "title": "Nombre",
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "descripcion": {
+                    "title": "Descripcion",
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
+        }
+    }
+}

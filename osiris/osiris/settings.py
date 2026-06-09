@@ -256,6 +256,11 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'apps.utils.views.custom_exception_handler',
 }
 
+SWAGGER_SETTINGS = {
+    'DEFAULT_INFO': 'osiris.urls.api_info',
+    'DEFAULT_GENERATOR_CLASS': 'osiris.swagger.AtlasSchemaGenerator',
+}
+
 GRAFICOS = ["pie", "barras", "linea", "multiple_linea" , "heatmap"]
 
 if USE_SSM:

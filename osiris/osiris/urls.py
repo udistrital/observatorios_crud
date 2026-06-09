@@ -5,13 +5,15 @@ from drf_yasg import openapi
 from django.conf.urls.static import static
 from django.conf import settings
 
+api_info = openapi.Info(
+    title="Atlas CRUD",
+    default_version="v1",
+    description="Documentación de la API de observatorios de la universidad Distrital Francisco Jose de Caldas",
+    license=openapi.License(name="Licencia MIT"),
+)
+
 schema_view = get_schema_view(
-    openapi.Info(
-        title="Observatorios CRUD",
-        default_version="v1",
-        description="Documentación de la API de observatorios de la universidad Distrital Francisco Jose de Caldas",
-        license=openapi.License(name="Licencia MIT"),
-    ),
+    api_info,
     public=True,
     permission_classes=(permissions.AllowAny,),
 )
@@ -20,7 +22,7 @@ urlpatterns = [
     ### Documentación ###
     path("documentacion/swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
     path("documentacion/redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
-    re_path(r"documentacion/^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
+    re_path(r"^documentacion/swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
 
     ### Healthcheck ###
     path("", include("apps.utils.urls")),
