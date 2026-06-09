@@ -97,8 +97,10 @@ else:
     CORS_ALLOW_ALL_ORIGINS = False
     #CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
     CORS_ALLOWED_ORIGINS = [
-        "http://172.30.5.86",
-        "https://172.30.5.86",
+        "http://pruebasatlas.portaloas.udistrital.edu.co",
+        "http://pruebasapi.intranetoas.udistrital.edu.co",
+        "https://pruebasatlas.portaloas.udistrital.edu.co",
+        "https://pruebasapi.intranetoas.udistrital.edu.co",
     ]
     CORS_ALLOWED_ORIGIN_REGEXES = [
         r".*\.udistrital\.edu\.co$",
