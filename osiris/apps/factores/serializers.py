@@ -75,6 +75,11 @@ class FactorSerializer(serializers.Serializer):
     caracteristicas = CaracteristicasField(
         required=False
     )
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
     activo = serializers.BooleanField(
         required=False,
         default=True
@@ -103,6 +108,11 @@ class FactorUpdateSerializer(serializers.Serializer):
     )
     caracteristicas = CaracteristicasField(
         required=False
+    )
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
     )
     activo = serializers.BooleanField(
         required=False

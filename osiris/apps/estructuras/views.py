@@ -7,7 +7,11 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from apps.elasticsearch_utils.utils import get_elasticsearch_client
+from apps.elasticsearch_utils.utils import (
+    get_elasticsearch_client,
+    normalizar_orden,
+    ordenar_por_orden,
+)
 
 from .serializers import (
     EstructuraEvidenciaSerializer,
@@ -54,6 +58,9 @@ class EstructuraViewSet(ViewSet):
                 "data": {
                     "type": "object",
                     "enabled": True
+                },
+                "orden": {
+                    "type": "integer"
                 },
                 "activo": {
                     "type": "boolean"
@@ -131,6 +138,7 @@ class EstructuraViewSet(ViewSet):
             "id": data.get("id"),
             "tipo_evidencia": data.get("tipo_evidencia"),
             "nombre": data.get("nombre"),
+            "orden": normalizar_orden(data.get("orden")),
             "activo": data.get("activo", True),
             "fecha_creacion": data.get("fecha_creacion"),
             "fecha_modificacion": data.get("fecha_modificacion"),
@@ -373,7 +381,7 @@ class EstructuraViewSet(ViewSet):
                 return Response([], status=status.HTTP_200_OK)
 
             return Response(
-                aspecto.get("estructuras_evidencias") or [],
+                ordenar_por_orden(aspecto.get("estructuras_evidencias") or []),
                 status=status.HTTP_200_OK
             )
 
@@ -403,7 +411,7 @@ class EstructuraViewSet(ViewSet):
                             }
                         )
 
-            return Response(estructuras, status=status.HTTP_200_OK)
+            return Response(ordenar_por_orden(estructuras), status=status.HTTP_200_OK)
 
         except NotFoundError:
             return Response([], status=status.HTTP_200_OK)
@@ -486,6 +494,17 @@ class EstructuraViewSet(ViewSet):
 
             fecha_actual = self.fecha_actual()
 
+            orden = normalizar_orden(data.get("orden"))
+
+            if orden is None:
+                estructuras_aspecto = aspecto.get("estructuras_evidencias") or []
+                ordenes = [
+                    normalizar_orden(item.get("orden"), 0)
+                    for item in estructuras_aspecto
+                    if isinstance(item, dict)
+                ]
+                orden = (max(ordenes) if ordenes else 0) + 1
+
             estructura = {
                 "id": indice_id,
                 "aspecto_id": aspecto_id,
@@ -493,6 +512,7 @@ class EstructuraViewSet(ViewSet):
                 "nombre": data.get("nombre"),
                 "campos": data.get("campos", []),
                 "data": data.get("data", []),
+                "orden": orden,
                 "activo": data.get("activo", True),
                 "fecha_creacion": fecha_actual,
                 "fecha_modificacion": fecha_actual,
@@ -544,81 +564,162 @@ class EstructuraViewSet(ViewSet):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
+        fecha_actual = self.fecha_actual()
+
+        print("Payload validado para actualizar estructura evidencia:", data)
+
         cliente = self.get_elasticsearch_client()
 
-        campos_eliminados_data = data.pop("eliminar_data_campos", [])
-
         try:
-            existe = cliente.indices.exists(index=pk)
-
-            if not existe:
-                return Response(
-                    {
-                        "error": "No se encontró el índice de la estructura"
-                    },
-                    status=status.HTTP_404_NOT_FOUND
-                )
-
-            estructura_actual = self.obtener_documento_estructura(cliente, pk)
-
-            estructura_actualizada = {
-                **estructura_actual,
-                **data,
-                "id": pk,
-                "fecha_modificacion": self.fecha_actual(),
-            }
-
-            if campos_eliminados_data:
-                estructura_actualizada["data"] = self.eliminar_campos_de_data(
-                    estructura_actualizada.get("data", []),
-                    campos_eliminados_data
-                )
-
-            estructura_actualizada = self.actualizar_documento_estructura(
-                cliente,
-                pk,
-                estructura_actualizada
-            )
-
-            aspecto_id, estructuras_actualizadas = self.actualizar_estructura_en_aspecto(
-                cliente,
-                pk,
-                estructura_actualizada
-            )
-
-            if estructuras_actualizadas is None:
-                return Response(
-                    {
-                        "error": "No se encontró la estructura dentro de ningún aspecto"
-                    },
-                    status=status.HTTP_404_NOT_FOUND
-                )
+            estructura_actual = cliente.get(
+                index=pk,
+                id=pk
+            )["_source"]
+        except Exception as error:
+            print(f"No se encontró la estructura evidencia {pk}: {error}")
 
             return Response(
                 {
-                    "estructura": estructura_actualizada,
-                    "aspecto_id": aspecto_id,
-                    "estructuras_evidencias": estructuras_actualizadas,
-                },
-                status=status.HTTP_200_OK
-            )
-
-        except NotFoundError:
-            return Response(
-                {
-                    "error": "No se encontró el documento de la estructura"
+                    "error": "No se encontró la estructura evidencia."
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        aspecto_id = data.get(
+            "aspecto_id",
+            estructura_actual.get("aspecto_id")
+        )
+
+        doc_update = {
+            "fecha_modificacion": fecha_actual,
+        }
+
+        if "aspecto_id" in data:
+            doc_update["aspecto_id"] = data["aspecto_id"]
+
+        if "tipo_evidencia" in data:
+            doc_update["tipo_evidencia"] = data["tipo_evidencia"]
+
+        if "nombre" in data:
+            doc_update["nombre"] = data["nombre"]
+
+        if "orden" in data:
+            doc_update["orden"] = data["orden"]
+
+        if "activo" in data:
+            doc_update["activo"] = data["activo"]
+
+        # Importante:
+        # No actualizar campos ni data aquí si no vienen en la petición.
+        # Así evitamos borrar la configuración de tabla/documental.
+        try:
+            cliente.update(
+                index=pk,
+                id=pk,
+                body={
+                    "doc": doc_update
+                },
+                refresh=True
+            )
         except Exception as error:
+            print(f"Error actualizando índice dinámico {pk}: {error}")
+
             return Response(
                 {
-                    "error": "No fue posible actualizar la estructura",
-                    "detalle": str(error)
+                    "error": "No fue posible actualizar la estructura evidencia."
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+        estructura_actualizada = cliente.get(
+            index=pk,
+            id=pk
+        )["_source"]
+
+        try:
+            aspecto = cliente.get(
+                index=self.indice_aspectos,
+                id=aspecto_id
+            )
+
+            aspecto_source = aspecto["_source"]
+            estructuras_evidencias = aspecto_source.get(
+                "estructuras_evidencias"
+            ) or []
+
+            estructuras_actualizadas = []
+
+            for estructura in estructuras_evidencias:
+                if estructura.get("id") == pk:
+                    estructura_actualizada_aspecto = {
+                        **estructura,
+                        "id": pk,
+                        "tipo_evidencia": estructura_actualizada.get(
+                            "tipo_evidencia",
+                            estructura.get("tipo_evidencia")
+                        ),
+                        "nombre": estructura_actualizada.get(
+                            "nombre",
+                            estructura.get("nombre")
+                        ),
+                        "orden": estructura_actualizada.get(
+                            "orden",
+                            estructura.get("orden")
+                        ),
+                        "activo": estructura_actualizada.get(
+                            "activo",
+                            estructura.get("activo", True)
+                        ),
+                        "fecha_modificacion": fecha_actual,
+                    }
+
+                    estructuras_actualizadas.append(
+                        estructura_actualizada_aspecto
+                    )
+                else:
+                    estructuras_actualizadas.append(estructura)
+
+            estructuras_actualizadas = ordenar_por_orden(
+                estructuras_actualizadas
+            )
+
+            cliente.update(
+                index=self.indice_aspectos,
+                id=aspecto_id,
+                body={
+                    "doc": {
+                        "estructuras_evidencias": estructuras_actualizadas,
+                        "fecha_modificacion": fecha_actual,
+                    }
+                },
+                refresh=True
+            )
+
+        except Exception as error:
+            print(
+                f"No se pudo actualizar la referencia en el aspecto "
+                f"{aspecto_id}: {error}"
+            )
+
+            return Response(
+                {
+                    "error": "La estructura se actualizó, pero no fue posible "
+                            "actualizar la referencia en el aspecto.",
+                    "detalle": str(error),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response(
+            {
+                "estructura": self.normalizar_estructura(
+                    estructura_actualizada
+                ),
+                "aspecto_id": aspecto_id,
+                "estructuras_evidencias": estructuras_actualizadas,
+            },
+            status=status.HTTP_200_OK
+        )
 
     def partial_update(self, request, pk=None, *args, **kwargs):
         return self.update(request, pk, *args, **kwargs)

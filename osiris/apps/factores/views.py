@@ -4,7 +4,12 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from apps.elasticsearch_utils.utils import get_elasticsearch_client
+from apps.elasticsearch_utils.utils import (
+    get_elasticsearch_client,
+    normalizar_orden,
+    obtener_siguiente_orden,
+    obtener_sort_orden_nombre,
+)
 
 from .serializers import FactorSerializer, FactorUpdateSerializer
 
@@ -38,6 +43,9 @@ class FactorViewSet(ViewSet):
                 },
                 "caracteristicas": {
                     "type": "keyword"
+                },
+                "orden": {
+                    "type": "integer"
                 },
                 "activo": {
                     "type": "boolean"
@@ -77,6 +85,7 @@ class FactorViewSet(ViewSet):
             "descripcion": source.get("descripcion", "") or "",
             "calificacion": source.get("calificacion"),
             "caracteristicas": source.get("caracteristicas") or [],
+            "orden": normalizar_orden(source.get("orden")),
             "activo": source.get("activo", True),
             "fecha_creacion": source.get("fecha_creacion"),
             "fecha_modificacion": source.get("fecha_modificacion"),
@@ -166,7 +175,8 @@ class FactorViewSet(ViewSet):
             index=self.nombre_indice,
             body={
                 "query": query,
-                "size": 1000
+                "size": 1000,
+                "sort": obtener_sort_orden_nombre()
             }
         )
 
@@ -229,6 +239,15 @@ class FactorViewSet(ViewSet):
             "descripcion": data.get("descripcion") or "",
             "calificacion": data.get("calificacion"),
             "caracteristicas": data.get("caracteristicas") or [],
+            "orden": data.get("orden") if data.get("orden") is not None else obtener_siguiente_orden(
+                cliente,
+                self.nombre_indice,
+                {
+                    "term": {
+                        "proceso_id": proceso_id
+                    }
+                }
+            ),
             "activo": data.get("activo", True),
             "fecha_creacion": fecha_actual,
             "fecha_modificacion": fecha_actual,
