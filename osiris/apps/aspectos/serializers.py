@@ -104,19 +104,26 @@ class AspectoSerializer(serializers.Serializer):
     caracteristica_id = serializers.CharField(required=True)
     nombre = serializers.CharField(required=True, max_length=1000)
     estructuras_evidencias = EstructurasEvidenciasField(required=False)
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
     activo = serializers.BooleanField(required=False, default=True)
 
 
 class AspectoUpdateSerializer(serializers.Serializer):
     caracteristica_id = serializers.CharField(required=False)
-
     nombre = serializers.CharField(
         required=False,
         max_length=1000,
         allow_blank=True,
         allow_null=True
     )
-
     estructuras_evidencias = EstructurasEvidenciasField(required=False)
-
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
     activo = serializers.BooleanField(required=False)

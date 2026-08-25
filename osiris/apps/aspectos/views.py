@@ -4,7 +4,13 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from apps.elasticsearch_utils.utils import get_elasticsearch_client
+from apps.elasticsearch_utils.utils import (
+    get_elasticsearch_client,
+    normalizar_orden,
+    obtener_siguiente_orden,
+    obtener_sort_orden_nombre,
+    ordenar_por_orden,
+)
 
 from .serializers import AspectoSerializer, AspectoUpdateSerializer
 
@@ -47,10 +53,16 @@ class AspectoViewSet(ViewSet):
                                 }
                             }
                         },
+                        "orden": {
+                            "type": "integer"
+                        },
                         "activo": {
                             "type": "boolean"
                         }
                     }
+                },
+                "orden": {
+                    "type": "integer"
                 },
                 "activo": {
                     "type": "boolean"
@@ -81,6 +93,41 @@ class AspectoViewSet(ViewSet):
                 index=self.nombre_indice,
                 body=self.aspecto_mapping
             )
+            return
+
+        try:
+            mapping = cliente.indices.get_mapping(
+                index=self.nombre_indice
+            )
+
+            properties = (
+                mapping
+                .get(self.nombre_indice, {})
+                .get("mappings", {})
+                .get("properties", {})
+            )
+
+            if "orden" not in properties:
+                cliente.indices.put_mapping(
+                    index=self.nombre_indice,
+                    body={
+                        "properties": {
+                            "orden": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                )
+
+                print(
+                    f"Campo orden agregado al mapping del índice {self.nombre_indice}"
+                )
+
+        except Exception as error:
+            print(
+                f"No se pudo validar/agregar el campo orden "
+                f"en {self.nombre_indice}: {error}"
+            )
 
     def normalizar_aspecto(self, elastic_id, source):
         return {
@@ -88,6 +135,7 @@ class AspectoViewSet(ViewSet):
             "caracteristica_id": source.get("caracteristica_id"),
             "nombre": source.get("nombre", ""),
             "estructuras_evidencias": source.get("estructuras_evidencias") or [],
+            "orden": normalizar_orden(source.get("orden")),
             "activo": source.get("activo", True),
             "fecha_creacion": source.get("fecha_creacion"),
             "fecha_modificacion": source.get("fecha_modificacion"),
@@ -197,7 +245,8 @@ class AspectoViewSet(ViewSet):
                 index=self.nombre_indice,
                 body={
                     "query": query,
-                    "size": 1000
+                    "size": 1000,
+                    "sort": obtener_sort_orden_nombre()
                 }
             )
 
@@ -268,6 +317,15 @@ class AspectoViewSet(ViewSet):
             "caracteristica_id": caracteristica_id,
             "nombre": data.get("nombre"),
             "estructuras_evidencias": data.get("estructuras_evidencias") or [],
+            "orden": data.get("orden") if data.get("orden") is not None else obtener_siguiente_orden(
+                cliente,
+                self.nombre_indice,
+                {
+                    "term": {
+                        "caracteristica_id": caracteristica_id
+                    }
+                }
+            ),
             "activo": data.get("activo", True),
             "fecha_creacion": fecha_actual,
             "fecha_modificacion": fecha_actual,
@@ -320,6 +378,8 @@ class AspectoViewSet(ViewSet):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
+
+        print("Payload validado para actualizar aspecto:", data)
 
         cliente = self.get_elasticsearch_client()
 

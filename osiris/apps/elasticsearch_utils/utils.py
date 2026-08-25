@@ -273,3 +273,108 @@ def obtener_campos_operacion(operacion : str):
 }
 
     return campos_operaciones.get(operacion, {})
+
+ORDEN_SIN_DEFINIR = 999999
+
+
+def normalizar_orden(valor, defecto=None):
+    """
+    Convierte el campo orden a entero.
+    Si viene vacío, None o inválido, retorna el defecto.
+    """
+    if valor in [None, ""]:
+        return defecto
+
+    try:
+        return int(valor)
+    except (TypeError, ValueError):
+        return defecto
+
+
+def ordenar_por_orden(items):
+    """
+    Ordena listas de diccionarios por:
+    1. orden
+    2. nombre
+    3. id
+    """
+    if not isinstance(items, list):
+        return []
+
+    def obtener_llave(item):
+        if not isinstance(item, dict):
+            return (ORDEN_SIN_DEFINIR, "", "")
+
+        return (
+            normalizar_orden(item.get("orden"), ORDEN_SIN_DEFINIR),
+            str(item.get("nombre") or "").lower(),
+            str(item.get("id") or ""),
+        )
+
+    return sorted(items, key=obtener_llave)
+
+
+def obtener_sort_orden_nombre():
+    """
+    Sort estándar para índices atlas_*.
+    unmapped_type evita error si un índice viejo todavía no tiene mapping orden.
+    """
+    return [
+        {
+            "orden": {
+                "order": "asc",
+                "missing": "_last",
+                "unmapped_type": "integer",
+            }
+        },
+        {
+            "nombre.keyword": {
+                "order": "asc",
+                "missing": "_last",
+                "unmapped_type": "keyword",
+            }
+        },
+    ]
+
+
+def obtener_siguiente_orden(cliente, indice, query=None):
+    """
+    Calcula el siguiente orden disponible dentro de un índice.
+    Si se manda query, calcula el orden dentro de ese grupo padre.
+    Ejemplo:
+    - factores dentro de proceso_id
+    - características dentro de factor_id
+    - aspectos dentro de caracteristica_id
+    """
+    try:
+        resultado = cliente.search(
+            index=indice,
+            body={
+                "query": query or {"match_all": {}},
+                "size": 1,
+                "sort": [
+                    {
+                        "orden": {
+                            "order": "desc",
+                            "missing": "_last",
+                            "unmapped_type": "integer",
+                        }
+                    }
+                ],
+            }
+        )
+
+        hits = resultado.get("hits", {}).get("hits", [])
+
+        if hits:
+            orden_actual = normalizar_orden(
+                hits[0].get("_source", {}).get("orden"),
+                0
+            )
+            return orden_actual + 1
+
+    except Exception:
+        pass
+
+    return 1
+

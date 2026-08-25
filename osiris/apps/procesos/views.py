@@ -3,7 +3,12 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from apps.elasticsearch_utils.utils import get_elasticsearch_client
+from apps.elasticsearch_utils.utils import (
+    get_elasticsearch_client,
+    normalizar_orden,
+    obtener_siguiente_orden,
+    obtener_sort_orden_nombre,
+)
 
 from .serializers import ProcesoSerializer, ProcesoUpdateSerializer
 
@@ -48,6 +53,9 @@ class ProcesoViewSet(ViewSet):
                 "fecha_fin": {
                     "type": "date"
                 },
+                "orden": {
+                    "type": "integer"
+                },
                 "activo": {
                     "type": "boolean"
                 },
@@ -77,6 +85,41 @@ class ProcesoViewSet(ViewSet):
                 index=self.nombre_indice,
                 body=self.proceso_mapping
             )
+            return
+
+        try:
+            mapping = cliente.indices.get_mapping(
+                index=self.nombre_indice
+            )
+
+            properties = (
+                mapping
+                .get(self.nombre_indice, {})
+                .get("mappings", {})
+                .get("properties", {})
+            )
+
+            if "orden" not in properties:
+                cliente.indices.put_mapping(
+                    index=self.nombre_indice,
+                    body={
+                        "properties": {
+                            "orden": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                )
+
+                print(
+                    f"Campo orden agregado al mapping del índice {self.nombre_indice}"
+                )
+
+        except Exception as error:
+            print(
+                f"No se pudo validar/agregar el campo orden "
+                f"en {self.nombre_indice}: {error}"
+            )
 
     def normalizar_proceso(self, elastic_id, source):
         return {
@@ -88,6 +131,7 @@ class ProcesoViewSet(ViewSet):
             "factores": source.get("factores") or [],
             "fecha_inicio": source.get("fecha_inicio"),
             "fecha_fin": source.get("fecha_fin"),
+            "orden": normalizar_orden(source.get("orden")),
             "activo": source.get("activo", True),
             "fecha_creacion": source.get("fecha_creacion"),
             "fecha_modificacion": source.get("fecha_modificacion"),
@@ -102,7 +146,8 @@ class ProcesoViewSet(ViewSet):
                 "query": {
                     "match_all": {}
                 },
-                "size": 1000
+                "size": 1000,
+                "sort": obtener_sort_orden_nombre()
             }
         )
 
@@ -146,6 +191,8 @@ class ProcesoViewSet(ViewSet):
         data = serializer.validated_data
         fecha_actual = self.fecha_actual()
 
+        cliente = self.get_elasticsearch_client()
+
         documento = {
             "nombre": data.get("nombre"),
             "descripcion": data.get("descripcion") or "",
@@ -154,6 +201,7 @@ class ProcesoViewSet(ViewSet):
             "factores": data.get("factores") or [],
             "fecha_inicio": data.get("fecha_inicio"),
             "fecha_fin": data.get("fecha_fin"),
+            "orden": data.get("orden") if data.get("orden") is not None else obtener_siguiente_orden(cliente,self.nombre_indice),
             "activo": data.get("activo", True),
             "fecha_creacion": fecha_actual,
             "fecha_modificacion": fecha_actual,
@@ -198,6 +246,8 @@ class ProcesoViewSet(ViewSet):
         data = serializer.validated_data
         data["fecha_modificacion"] = self.fecha_actual()
 
+        print("Payload validado para actualizar proceso:", data)
+
         cliente = self.get_elasticsearch_client()
 
         try:
@@ -209,7 +259,9 @@ class ProcesoViewSet(ViewSet):
                 },
                 refresh=True
             )
-        except Exception:
+        except Exception as error:
+            print(f"Error actualizando proceso {pk}: {error}")
+
             return Response(
                 {
                     "error": "No se encontró el proceso"
@@ -228,7 +280,7 @@ class ProcesoViewSet(ViewSet):
         )
 
         return Response(response_data, status=status.HTTP_200_OK)
-
+        
     def partial_update(self, request, pk=None, *args, **kwargs):
         return self.update(request, pk, *args, **kwargs)
 
