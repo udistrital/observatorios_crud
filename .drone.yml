@@ -23,7 +23,7 @@ steps:
       - push
 
   - name: publish_to_ecr_release
-    image: plugins/ecr
+    image: plugins/ecr:21.2.9
     settings:
       access_key:
         from_secret: AWS_ACCESS_KEY_ID
@@ -45,7 +45,7 @@ steps:
         - push
 
   - name: publish_to_ecr_prod
-    image: plugins/ecr
+    image: plugins/ecr:21.2.9
     settings:
       access_key:
         from_secret: AWS_ACCESS_KEY_ID
