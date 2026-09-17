@@ -3,7 +3,12 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from apps.elasticsearch_utils.utils import get_elasticsearch_client
+from apps.elasticsearch_utils.utils import (
+    get_elasticsearch_client,
+    normalizar_orden,
+    obtener_siguiente_orden,
+    obtener_sort_orden_nombre,
+)
 
 from .serializers import (CaracteristicaSerializer,CaracteristicaUpdateSerializer)
 
@@ -38,6 +43,9 @@ class CaracteristicaViewSet(ViewSet):
                 "aspectos": {
                     "type": "keyword"
                 },
+                "orden": {
+                    "type": "integer"
+                },
                 "activo": {
                     "type": "boolean"
                 },
@@ -68,6 +76,41 @@ class CaracteristicaViewSet(ViewSet):
             cliente.indices.create(
                 index=self.nombre_indice,
                 body=self.caracteristica_mapping
+            )
+            return
+
+        try:
+            mapping = cliente.indices.get_mapping(
+                index=self.nombre_indice
+            )
+
+            properties = (
+                mapping
+                .get(self.nombre_indice, {})
+                .get("mappings", {})
+                .get("properties", {})
+            )
+
+            if "orden" not in properties:
+                cliente.indices.put_mapping(
+                    index=self.nombre_indice,
+                    body={
+                        "properties": {
+                            "orden": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                )
+
+                print(
+                    f"Campo orden agregado al mapping del índice {self.nombre_indice}"
+                )
+
+        except Exception as error:
+            print(
+                f"No se pudo validar/agregar el campo orden "
+                f"en {self.nombre_indice}: {error}"
             )
 
     def existe_factor(self, factor_elastic_id):
@@ -197,6 +240,7 @@ class CaracteristicaViewSet(ViewSet):
             "descripcion": source.get("descripcion", ""),
             "calificacion": source.get("calificacion"),
             "aspectos": source.get("aspectos") or [],
+            "orden": normalizar_orden(source.get("orden")),
             "activo": source.get("activo", True),
             "fecha_creacion": source.get("fecha_creacion"),
             "fecha_modificacion": source.get("fecha_modificacion"),
@@ -222,7 +266,8 @@ class CaracteristicaViewSet(ViewSet):
             index=self.nombre_indice,
             body={
                 "query": query,
-                "size": 1000
+                "size": 1000,
+                "sort": obtener_sort_orden_nombre()
             }
         )
 
@@ -290,6 +335,15 @@ class CaracteristicaViewSet(ViewSet):
             "descripcion": data.get("descripcion") or "",
             "calificacion": data.get("calificacion"),
             "aspectos": data.get("aspectos") or [],
+            "orden": data.get("orden") if data.get("orden") is not None else obtener_siguiente_orden(
+                cliente,
+                self.nombre_indice,
+                {
+                    "term": {
+                        "factor_id": factor_elastic_id
+                    }
+                }
+            ),
             "activo": data.get("activo", True),
             "fecha_creacion": fecha_actual,
             "fecha_modificacion": fecha_actual,
@@ -333,6 +387,8 @@ class CaracteristicaViewSet(ViewSet):
 
         data = serializer.validated_data
         data["fecha_modificacion"] = self.fecha_actual()
+
+        print("Payload validado para actualizar característica:", data)
 
         cliente = self.get_elasticsearch_client()
 

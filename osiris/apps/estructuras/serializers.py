@@ -71,6 +71,11 @@ class EstructuraEvidenciaSerializer(serializers.Serializer):
     activo = serializers.BooleanField(required=False, default=True)
     campos = CampoEstructuraSerializer(many=True, required=False, default=list)
     data = serializers.ListField(required=False, default=list)
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
 
     def validate_tipo_evidencia(self, value):
         value = value.strip()
@@ -122,6 +127,11 @@ class EstructuraEvidenciaUpdateSerializer(serializers.Serializer):
     activo = serializers.BooleanField(required=False)
     campos = CampoEstructuraSerializer(many=True, required=False)
     data = serializers.ListField(required=False)
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
 
     # Campo de acción. NO se guarda en el documento.
     eliminar_data_campos = serializers.ListField(

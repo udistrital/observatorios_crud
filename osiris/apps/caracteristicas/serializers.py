@@ -62,6 +62,7 @@ class CaracteristicaSerializer(serializers.Serializer):
     descripcion = serializers.CharField(required=True)
     calificacion = CalificacionField(required=False)
     aspectos = AspectosField(required=False)
+    orden = serializers.IntegerField(required=False,allow_null=True,min_value=0)
     activo = serializers.BooleanField(required=False, default=True)
 
 
@@ -71,4 +72,5 @@ class CaracteristicaUpdateSerializer(serializers.Serializer):
     descripcion = serializers.CharField(required=False)
     calificacion = CalificacionField(required=False)
     aspectos = AspectosField(required=False)
+    orden = serializers.IntegerField(required=False,allow_null=True,min_value=0)
     activo = serializers.BooleanField(required=False)

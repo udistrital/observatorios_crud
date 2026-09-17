@@ -97,6 +97,11 @@ class ProcesoSerializer(serializers.Serializer):
         required=False,
         default=True
     )
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
 
 class ProcesoUpdateSerializer(serializers.Serializer):
     nombre = serializers.CharField(
@@ -132,4 +137,9 @@ class ProcesoUpdateSerializer(serializers.Serializer):
     )
     activo = serializers.BooleanField(
         required=False
+    )
+    orden = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
     )
