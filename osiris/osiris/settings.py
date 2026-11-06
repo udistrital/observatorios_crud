@@ -257,11 +257,32 @@ STATIC_ROOT = os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles"))
 MEDIA_URL = '/media/'  
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+LIBREOFFICE_EXECUTABLE = os.getenv(
+    "LIBREOFFICE_EXECUTABLE",
+    "/usr/bin/libreoffice"
+)
+LIBREOFFICE_USER = os.getenv("LIBREOFFICE_USER", "documentconverter")
+DOCUMENT_PREVIEW_MAX_BYTES = int(os.getenv(
+    "DOCUMENT_PREVIEW_MAX_BYTES",
+    str(20 * 1024 * 1024)
+))
+DOCUMENT_PREVIEW_MAX_PDF_BYTES = int(os.getenv(
+    "DOCUMENT_PREVIEW_MAX_PDF_BYTES",
+    str(50 * 1024 * 1024)
+))
+DOCUMENT_PREVIEW_TIMEOUT_SECONDS = int(os.getenv(
+    "DOCUMENT_PREVIEW_TIMEOUT_SECONDS",
+    "20"
+))
+
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
     'EXCEPTION_HANDLER': 'apps.utils.views.custom_exception_handler',
+    'DEFAULT_THROTTLE_RATES': {
+        'document_preview': os.getenv("DOCUMENT_PREVIEW_RATE", "30/min"),
+    },
 }
 
 SWAGGER_SETTINGS = {

@@ -1,6 +1,23 @@
+import io
+import logging
+import os
+import pwd
+import signal
+import subprocess
+import tempfile
+import threading
+import zipfile
+from pathlib import Path
+from xml.etree import ElementTree
+
+import olefile
+from django.conf import settings
+from django.http import HttpResponse
 from elasticsearch import NotFoundError
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
@@ -19,6 +36,445 @@ from .utils import (
     obtener_tipos_campos,
     paginar_resultados,
 )
+
+
+logger = logging.getLogger(__name__)
+
+TIPOS_OFFICE_PERMITIDOS = {
+    ".doc": "application/msword",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xls": "application/vnd.ms-excel",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+MIMES_GENERICOS = {"", "application/octet-stream"}
+FIRMA_OLE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+SEMAFORO_CONVERSION = threading.BoundedSemaphore(1)
+
+
+class ErrorVistaPrevia(Exception):
+    def __init__(self, mensaje, codigo_estado):
+        super().__init__(mensaje)
+        self.mensaje = mensaje
+        self.codigo_estado = codigo_estado
+
+
+def _validar_paquete_ooxml(contenido, extension):
+    try:
+        with zipfile.ZipFile(io.BytesIO(contenido)) as paquete:
+            miembros = paquete.infolist()
+
+            if len(miembros) > 5000:
+                raise ErrorVistaPrevia(
+                    "El documento Office contiene demasiados elementos.",
+                    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                )
+
+            maximo_expandido = settings.DOCUMENT_PREVIEW_MAX_BYTES * 20
+            total_expandido = 0
+            nombres = set()
+
+            for miembro in miembros:
+                total_expandido += miembro.file_size
+                nombres.add(miembro.filename.lower())
+
+                if miembro.flag_bits & 0x1:
+                    raise ErrorVistaPrevia(
+                        "No se pueden previsualizar documentos cifrados.",
+                        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                    )
+
+                if (
+                    miembro.file_size > 1024 * 1024
+                    and miembro.file_size > max(1, miembro.compress_size) * 200
+                ):
+                    raise ErrorVistaPrevia(
+                        "El documento Office no es seguro para previsualizar.",
+                        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                    )
+
+            if total_expandido > maximo_expandido:
+                raise ErrorVistaPrevia(
+                    "El documento Office expandido supera el limite permitido.",
+                    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                )
+
+            parte_principal = (
+                "word/document.xml"
+                if extension == ".docx"
+                else "xl/workbook.xml"
+            )
+            content_type_principal = (
+                "application/vnd.openxmlformats-officedocument."
+                "wordprocessingml.document.main+xml"
+                if extension == ".docx"
+                else "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet.main+xml"
+            )
+
+            if (
+                "[content_types].xml" not in nombres
+                or parte_principal not in nombres
+            ):
+                raise ErrorVistaPrevia(
+                    "El contenido no corresponde con la extension del documento.",
+                    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                )
+
+            tipos_xml = ElementTree.fromstring(
+                paquete.read("[Content_Types].xml")
+            )
+            tipos_declarados = {
+                elemento.attrib.get("ContentType", "").lower()
+                for elemento in tipos_xml
+            }
+
+            if content_type_principal not in tipos_declarados:
+                raise ErrorVistaPrevia(
+                    "El contenido no corresponde con la extension del documento.",
+                    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                )
+
+            if (
+                any(nombre.endswith("vbaproject.bin") for nombre in nombres)
+                or any("macroenabled" in tipo for tipo in tipos_declarados)
+            ):
+                raise ErrorVistaPrevia(
+                    "No se pueden previsualizar documentos con macros.",
+                    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                )
+
+            for miembro in miembros:
+                if not miembro.filename.lower().endswith(".rels"):
+                    continue
+
+                relaciones = ElementTree.fromstring(paquete.read(miembro))
+
+                if any(
+                    relacion.attrib.get("TargetMode", "").lower() == "external"
+                    for relacion in relaciones
+                ):
+                    raise ErrorVistaPrevia(
+                        "No se pueden previsualizar documentos con recursos externos.",
+                        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                    )
+    except zipfile.BadZipFile as error:
+        raise ErrorVistaPrevia(
+            "El contenido no corresponde con la extension del documento.",
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        ) from error
+    except ElementTree.ParseError as error:
+        raise ErrorVistaPrevia(
+            "El documento Office contiene metadatos invalidos.",
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        ) from error
+
+
+def _validar_documento_ole(contenido, extension):
+    try:
+        with olefile.OleFileIO(io.BytesIO(contenido)) as documento:
+            nombres = {
+                "/".join(ruta).lower()
+                for ruta in documento.listdir(streams=True, storages=True)
+            }
+
+            if any(
+                "vba" in nombre
+                or "macros" in nombre
+                or "encryptedpackage" in nombre
+                for nombre in nombres
+            ):
+                raise ErrorVistaPrevia(
+                    "No se pueden previsualizar documentos cifrados o con macros.",
+                    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                )
+
+            parte_requerida = "worddocument" if extension == ".doc" else "workbook"
+
+            if extension == ".xls":
+                tiene_parte = parte_requerida in nombres or "book" in nombres
+            else:
+                tiene_parte = parte_requerida in nombres
+
+            if not tiene_parte:
+                raise ErrorVistaPrevia(
+                    "El contenido no corresponde con la extension del documento.",
+                    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                )
+    except (OSError, olefile.OleFileError) as error:
+        raise ErrorVistaPrevia(
+            "El contenido no corresponde con la extension del documento.",
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        ) from error
+
+
+def validar_y_leer_documento_office(archivo):
+    nombre = Path(str(archivo.name or "")).name
+    extension = Path(nombre).suffix.lower()
+    mime_esperado = TIPOS_OFFICE_PERMITIDOS.get(extension)
+
+    if not mime_esperado:
+        raise ErrorVistaPrevia(
+            "Solo se pueden previsualizar documentos Word o Excel.",
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        )
+
+    mime_recibido = str(archivo.content_type or "").split(";", 1)[0].lower()
+
+    if mime_recibido not in MIMES_GENERICOS and mime_recibido != mime_esperado:
+        raise ErrorVistaPrevia(
+            "El tipo MIME no corresponde con la extension del documento.",
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        )
+
+    if archivo.size and archivo.size > settings.DOCUMENT_PREVIEW_MAX_BYTES:
+        raise ErrorVistaPrevia(
+            "El documento supera el limite permitido para vista previa.",
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        )
+
+    partes = []
+    total = 0
+
+    for parte in archivo.chunks():
+        total += len(parte)
+
+        if total > settings.DOCUMENT_PREVIEW_MAX_BYTES:
+            raise ErrorVistaPrevia(
+                "El documento supera el limite permitido para vista previa.",
+                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        partes.append(parte)
+
+    contenido = b"".join(partes)
+
+    if not contenido:
+        raise ErrorVistaPrevia(
+            "Debe enviar un documento con contenido.",
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    if extension in {".docx", ".xlsx"}:
+        _validar_paquete_ooxml(contenido, extension)
+    elif contenido.startswith(FIRMA_OLE):
+        _validar_documento_ole(contenido, extension)
+    else:
+        raise ErrorVistaPrevia(
+            "El contenido no corresponde con la extension del documento.",
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        )
+
+    return contenido, extension
+
+
+def convertir_documento_office_pdf(contenido, extension):
+    with tempfile.TemporaryDirectory(prefix="observatorios-preview-") as temporal:
+        directorio_temporal = Path(temporal)
+        directorio_salida = directorio_temporal / "salida"
+        perfil = directorio_temporal / "perfil-libreoffice"
+        archivo_entrada = directorio_temporal / f"documento{extension}"
+        archivo_salida = directorio_salida / "documento.pdf"
+
+        directorio_salida.mkdir()
+        perfil.mkdir()
+        archivo_entrada.write_bytes(contenido)
+
+        identidad_proceso = {}
+
+        if os.geteuid() == 0 and settings.LIBREOFFICE_USER:
+            try:
+                usuario = pwd.getpwnam(settings.LIBREOFFICE_USER)
+            except KeyError as error:
+                raise ErrorVistaPrevia(
+                    "El usuario del conversor no esta disponible.",
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                ) from error
+
+            for ruta in (
+                directorio_temporal,
+                directorio_salida,
+                perfil,
+                archivo_entrada,
+            ):
+                os.chown(ruta, usuario.pw_uid, usuario.pw_gid)
+
+            identidad_proceso = {
+                "user": usuario.pw_uid,
+                "group": usuario.pw_gid,
+            }
+
+        comando = [
+            settings.LIBREOFFICE_EXECUTABLE,
+            "--headless",
+            "--nologo",
+            "--nodefault",
+            "--nolockcheck",
+            "--nofirststartwizard",
+            "--safe-mode",
+            f"-env:UserInstallation={perfil.resolve().as_uri()}",
+            "--convert-to",
+            "pdf",
+            "--outdir",
+            str(directorio_salida),
+            str(archivo_entrada),
+        ]
+
+        try:
+            proceso = subprocess.Popen(
+                comando,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                start_new_session=True,
+                env={
+                    "HOME": str(directorio_temporal),
+                    "LANG": "C.UTF-8",
+                    "LC_ALL": "C.UTF-8",
+                    "PATH": "/usr/bin:/bin",
+                    "SAL_USE_VCLPLUGIN": "svp",
+                    "TMPDIR": str(directorio_temporal),
+                },
+                **identidad_proceso,
+            )
+        except OSError as error:
+            raise ErrorVistaPrevia(
+                "El conversor de documentos no esta disponible.",
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            ) from error
+
+        try:
+            proceso.communicate(timeout=settings.DOCUMENT_PREVIEW_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired as error:
+            try:
+                os.killpg(proceso.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+            proceso.communicate()
+            raise ErrorVistaPrevia(
+                "La conversion excedio el tiempo permitido.",
+                status.HTTP_504_GATEWAY_TIMEOUT,
+            ) from error
+
+        if proceso.returncode != 0 or not archivo_salida.is_file():
+            raise ErrorVistaPrevia(
+                "No fue posible generar la vista previa del documento.",
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        if archivo_salida.stat().st_size > settings.DOCUMENT_PREVIEW_MAX_PDF_BYTES:
+            raise ErrorVistaPrevia(
+                "La vista previa generada supera el limite permitido.",
+                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        pdf = archivo_salida.read_bytes()
+
+        if not pdf.startswith(b"%PDF-"):
+            raise ErrorVistaPrevia(
+                "El conversor no genero una vista previa PDF valida.",
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        return pdf
+
+
+class VistaPreviaDocumentoView(APIView):
+    parser_classes = [MultiPartParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "document_preview"
+
+    def post(self, request, *args, **kwargs):
+        autorizacion = request.headers.get("Authorization", "")
+
+        if not autorizacion.startswith("Bearer ") or not autorizacion[7:].strip():
+            response = Response(
+                {
+                    "status": "error",
+                    "message": "Se requiere autenticacion para generar la vista previa.",
+                    "data": None,
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            response["WWW-Authenticate"] = "Bearer"
+            return response
+
+        archivo = request.FILES.get("archivo")
+
+        if archivo is None:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Debe enviar el archivo que desea previsualizar.",
+                    "data": None,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        contenido = None
+        extension = None
+
+        try:
+            contenido, extension = validar_y_leer_documento_office(archivo)
+        except ErrorVistaPrevia as error:
+            return Response(
+                {
+                    "status": "error",
+                    "message": error.mensaje,
+                    "data": None,
+                },
+                status=error.codigo_estado,
+            )
+        except Exception:
+            logger.exception("Error inesperado al generar una vista previa documental")
+            return Response(
+                {
+                    "status": "error",
+                    "message": "No fue posible generar la vista previa del documento.",
+                    "data": None,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        if not SEMAFORO_CONVERSION.acquire(blocking=False):
+            return Response(
+                {
+                    "status": "error",
+                    "message": "El servicio de vista previa esta ocupado.",
+                    "data": None,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        try:
+            pdf = convertir_documento_office_pdf(contenido, extension)
+        except ErrorVistaPrevia as error:
+            return Response(
+                {
+                    "status": "error",
+                    "message": error.mensaje,
+                    "data": None,
+                },
+                status=error.codigo_estado,
+            )
+        except Exception:
+            logger.exception("Error inesperado al convertir una vista previa documental")
+            return Response(
+                {
+                    "status": "error",
+                    "message": "No fue posible generar la vista previa del documento.",
+                    "data": None,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        finally:
+            SEMAFORO_CONVERSION.release()
+
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = 'inline; filename="vista-previa.pdf"'
+        response["Content-Length"] = str(len(pdf))
+        response["Cache-Control"] = "private, no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
 
 
 class TiposCamposVista(APIView):
