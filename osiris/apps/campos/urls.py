@@ -5,6 +5,7 @@ from .views import (
     EstructuraCamposViewSet,
     ArchivosDatosView,
     DatosEstructuraDocumentoView,
+    VistaPreviaDocumentoView,
 )
 
 
@@ -50,6 +51,12 @@ urlpatterns = [
         "datos/<str:pk>/<str:id_documento>/",
         DatosEstructuraDocumentoView.as_view(),
         name="datos-estructura-detalle"
+    ),
+
+    path(
+        "archivos/vista-previa/",
+        VistaPreviaDocumentoView.as_view(),
+        name="vista-previa-documento"
     ),
 
     path(

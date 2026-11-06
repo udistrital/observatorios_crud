@@ -30,8 +30,6 @@ steps:
       create_repository: true
       dockerfile: osiris/Dockerfile
       context: osiris
-      # Sin esto, el dockerd interno del plugin no encuentra nameservers
-      # no-loopback y cae al fallback 8.8.8.8, inalcanzable desde esta VPC.
       custom_dns:
         - 172.30.0.2
       region:
