@@ -1,5 +1,8 @@
 # CRUD-ASIS-003 — Gestión de datos por estructura con formatos FORM/CSV/JSON
 
+> Estado: histórico/no verificado. [INFERIDO] `DatosViewSet.initial` falla con la
+> API actual de `EstructuraCamposModelo`. No usar como contrato operativo.
+
 ## Historia de Usuario (AS-IS)
 **Como** usuario funcional del observatorio
 **Quiero** registrar y consultar datos en múltiples formatos

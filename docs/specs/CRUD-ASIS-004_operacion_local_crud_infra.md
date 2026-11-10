@@ -1,8 +1,8 @@
 # CRUD-ASIS-004 — Operación local desacoplada (solo CRUD y stack de infraestructura)
 
 ## Historia de Usuario (AS-IS)
-**Como** desarrollador técnico del ecosistema Observatorios  
-**Quiero** levantar de forma independiente la API CRUD y, cuando aplique, la infraestructura local  
+**Como** desarrollador técnico del ecosistema Observatorios
+**Quiero** levantar de forma independiente la API CRUD y, cuando aplique, la infraestructura local
 **Para** validar cambios funcionales sin bloquearme por dependencias de entorno completas.
 
 ## Criterios de aceptación funcionales
@@ -24,7 +24,7 @@ Reduce tiempos de soporte técnico y habilita ciclos de prueba más cortos para 
 ### Incluye
 - Script operativo de API (`run_crud.sh`).
 - Script operativo de infraestructura (`infraestructura/run_infra.sh`).
-	- Política de único `.env` en `osiris/.env` y uso de `PARAMETER_STORE` para distinguir local vs entornos con secretos en SSM.
+- Política de único `.env` en `osiris/.env` y uso de `PARAMETER_STORE` para distinguir local vs entornos con secretos en SSM.
 
 ### Excluye (fuera de alcance)
 - Ajustes de negocio de endpoints.
