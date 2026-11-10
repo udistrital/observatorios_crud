@@ -1,28 +1,64 @@
-# [ID_SPEC] Título de la especificación
+# [ID] Título
 
-## Historia de Usuario
-**Como** [rol]
-**Quiero** [necesidad funcional]
-**Para** [beneficio/valor]
+## Identidad
 
-## Criterios de aceptación de la historia (Gherkin recomendado)
-- **Dado** [contexto], **cuando** [acción], **entonces** [resultado esperado].
-- **Dado** [contexto alterno], **cuando** [acción], **entonces** [resultado esperado].
+| Campo | Valor |
+|---|---|
+| Sistema dueño | `observatorios_crud` |
+| Estado | AS-IS / TO-BE propuesto / aprobado / implementado |
+| Referencia | rama, commit y fecha |
+| Reemplaza | ID o `[NO APLICA]` |
 
-## 1. Contexto
-## 2. Problema
-## 3. Objetivo
-## 4. Alcance
+## Contexto y objetivo
+
+**Como** [actor], **quiero** [capacidad], **para** [valor].
+
+Problema, actores y fuente de necesidad. Etiquetar hechos e incertidumbre.
+
+## Alcance
+
 ### Incluye
-### Excluye (Fuera de alcance)
-## 5. Actores
-## 6. Flujo principal
-## 7. Flujos alternos / excepciones
-## 8. Reglas de negocio
-## 9. Consideraciones técnicas (solo soporte)
-## 10. Criterios de aceptación verificables
-## 11. Dependencias
-## 12. Riesgos
-## 13. Pendientes
-## 14. Evidencia
-## 15. Clasificación SDD
+
+### Excluye
+
+## Requisitos funcionales
+
+| ID | Requisito verificable | Fuente/prioridad |
+|---|---|---|
+| REQ-[ID]-001 | El sistema ... | |
+
+## Reglas de negocio
+
+| ID | Regla | Fuente |
+|---|---|---|
+| BR-[ID]-001 | | |
+
+## Escenarios
+
+Precondiciones, camino principal, alternos y excepciones.
+
+## Criterios de aceptación
+
+- **AC-[ID]-001**: Dado ..., cuando ..., entonces ...
+
+## Contratos e integraciones
+
+Método/ruta, request, response, errores, compatibilidad y proveedor/consumidor.
+
+## Requisitos no funcionales
+
+Seguridad, fiabilidad, rendimiento, mantenibilidad, accesibilidad y observabilidad.
+No inventar métricas; usar `[NO VERIFICADO]` cuando no existan.
+
+## Pruebas y evidencia
+
+Separar pruebas existentes de casos propuestos. Citar rutas y símbolos.
+
+## Riesgos, dudas y decisiones
+
+Dependencias, supuestos etiquetados, ADR y preguntas abiertas.
+
+## Convergencia
+
+Para TO-BE: estado de implementación, comandos ejecutados y documentos AS-IS que
+deben actualizarse al entregar.

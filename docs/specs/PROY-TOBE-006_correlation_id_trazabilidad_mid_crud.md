@@ -1,5 +1,10 @@
 # PROY-TOBE-006 — Correlation-id y trazabilidad distribuida en integración MID↔CRUD
 
+> Estado: [PROPUESTA] no implementada. La contraparte MID citada está
+> [NO VERIFICADO] porque no existe en el checkout local, y `datosArchivo` está
+> [INFERIDO] no operativo con el modelo CRUD actual. Requiere decisión de
+> continuidad antes de planear implementación.
+
 ## Historia de Usuario (TO-BE)
 **Como** equipo de mantenimiento de `observatorios_crud`
 **Quiero** aceptar y registrar un identificador de correlación en endpoints `datosArchivo`
