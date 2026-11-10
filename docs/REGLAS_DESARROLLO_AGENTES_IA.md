@@ -1,4 +1,9 @@
 # Historia de Usuario
+
+> Estado: reglas históricas. Para trabajo actual prevalecen [`../AGENTS.md`](../AGENTS.md),
+> [`sdd/guia-agentes.md`](sdd/guia-agentes.md) y [`sdd/flujo-sdd.md`](sdd/flujo-sdd.md).
+> No aplicar instrucciones de capas, migraciones o nomenclatura que contradigan
+> esas fuentes y el código AS-IS.
 Como equipo de desarrollo de `observatorios_crud`,
 quiero un conjunto de reglas operativas para agentes de IA,
 para generar codigo nuevo consistente con las convenciones del repositorio y reducir retrabajos funcionales y tecnicos.

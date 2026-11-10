@@ -1,5 +1,9 @@
 # CRUD-ASIS-002 — Persistencia de metadatos documentales (`datosArchivo`)
 
+> Estado: histórico/no verificado. Las rutas existen, pero [INFERIDO] no son
+> operativas porque `DatosArchivoViewSet` usa atributos ausentes del modelo actual.
+> Consulte [`PROY-ASIS-003_campos_y_registros.md`](PROY-ASIS-003_campos_y_registros.md).
+
 ## Historia de Usuario (AS-IS)
 **Como** proceso documental institucional
 **Quiero** persistir metadatos de archivo asociados a una estructura
