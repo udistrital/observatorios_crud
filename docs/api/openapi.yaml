@@ -375,10 +375,20 @@ paths:
     get:
       tags: [Campos]
       operationId: listTiposCampo
-      summary: Obtener catálogo de tipos Elasticsearch
+      summary: Obtener catálogo de tipos de campo soportados
+      description: |
+        Incluye tipos nativos de Elasticsearch y el tipo semántico `link`,
+        presentado como `Enlace` y respaldado internamente por mapping `keyword`.
       x-source: osiris/apps/campos/views.py:TiposCamposVista.get
       x-verification: VERIFICADO
-      responses: {'200': {$ref: '#/components/responses/Array200'}}
+      responses:
+        '200':
+          description: Catálogo de tipos con etiqueta y valor técnico
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/TipoCampo'}
   /api/{version}/campos/estructuras/:
     parameters: [{$ref: '#/components/parameters/Version'}]
     get:
@@ -1027,6 +1037,7 @@ components:
       content:
         application/json:
           schema:
+            description: En ambas formas, un valor de campo `link` es `null` o URL absoluta HTTP(S) de máximo 2048 caracteres.
             oneOf:
               - {$ref: '#/components/schemas/RegistroValores'}
               - {$ref: '#/components/schemas/AnyObject'}
@@ -1201,9 +1212,18 @@ components:
         campo_id: {type: string}
         orden: {type: integer, minimum: 0}
         nombre_campo: {type: string}
-        tipo_campo: {type: string}
+        tipo_campo:
+          type: string
+          description: Tipo soportado por el catálogo; `link` representa una URL HTTP(S) y usa mapping `keyword`.
+          example: link
         activo: {type: boolean}
         migrar_data: {type: boolean}
+    TipoCampo:
+      type: object
+      required: [label, value]
+      properties:
+        label: {type: string, example: Enlace}
+        value: {type: string, example: link}
     EstructuraCamposUpdate:
       type: object
       properties:
@@ -1215,6 +1235,7 @@ components:
         eliminar_data_campos: {type: array, items: {type: string}}
     RegistroValores:
       type: object
+      description: Para campos `link`, el valor es `null` o una URL absoluta HTTP(S) de máximo 2048 caracteres.
       required: [valores]
       properties:
         valores: {type: object, additionalProperties: true}
