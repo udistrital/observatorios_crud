@@ -7,12 +7,176 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.estructuras.serializers import CampoEstructuraSerializer
+
+from .utils import (
+    LONGITUD_MAXIMA_ENLACE,
+    TIPOS_CAMPOS_PERMITIDOS,
+    aplicar_migraciones_data,
+    construir_valores_registro,
+    convertir_valor_por_tipo,
+    normalizar_campos_con_ids,
+    obtener_mapping_tipo_campo,
+    obtener_tipos_campos,
+)
 from .views import ErrorVistaPrevia, FIRMA_OLE
+
+
+class TipoCampoEnlaceTests(SimpleTestCase):
+    def test_expone_enlace_en_catalogo_y_validadores(self):
+        self.assertIn("link", TIPOS_CAMPOS_PERMITIDOS)
+        self.assertIn(
+            {"label": "Enlace", "value": "link"},
+            obtener_tipos_campos(),
+        )
+
+        serializer = CampoEstructuraSerializer(
+            data={"nombre_campo": "Sitio web", "tipo_campo": "link"}
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_mapea_enlace_como_keyword(self):
+        self.assertEqual(
+            obtener_mapping_tipo_campo("link"),
+            {"type": "keyword"},
+        )
+
+    def test_convierte_enlaces_http_y_https(self):
+        for enlace in (
+            "http://example.org",
+            "http://intranet",
+            "http://[::1]",
+            "https://münich.example",
+            "https://example.org/ruta?consulta=1#seccion",
+        ):
+            with self.subTest(enlace=enlace):
+                self.assertEqual(
+                    convertir_valor_por_tipo(f"  {enlace}  ", "link"),
+                    enlace,
+                )
+
+        self.assertIsNone(convertir_valor_por_tipo("", "link"))
+        self.assertIsNone(convertir_valor_por_tipo("   ", "link"))
+
+    def test_rechaza_enlaces_invalidos_o_no_permitidos(self):
+        for enlace in (
+            "example.org",
+            "javascript:alert(1)",
+            "data:text/html,contenido",
+            "ftp://example.org/archivo",
+            "https://",
+            "https://example.org/ruta con espacios",
+            "https://example.org\\@otro.example",
+            "https://example.org:99999",
+            "http:example.org",
+            "http:///example.org",
+            "http://example.org:0",
+            "http://exa%mple.org",
+            "http://%65xample.org",
+            "http://256.256.256.256",
+            "http://[v1.test]",
+        ):
+            with self.subTest(enlace=enlace):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "esquema http:// o https://",
+                ):
+                    convertir_valor_por_tipo(enlace, "link")
+
+    def test_rechaza_enlace_demasiado_largo(self):
+        enlace = "https://example.org/" + (
+            "a" * LONGITUD_MAXIMA_ENLACE
+        )
+
+        with self.assertRaisesRegex(ValueError, "2048 caracteres"):
+            convertir_valor_por_tipo(enlace, "link")
+
+    def test_asocia_error_de_enlace_con_nombre_de_campo(self):
+        campos = [
+            {
+                "campo_id": "campo_enlace",
+                "nombre_campo": "Sitio web",
+                "tipo_campo": "link",
+                "activo": True,
+            }
+        ]
+
+        with self.assertRaises(ValueError) as contexto:
+            construir_valores_registro(
+                campos,
+                {"Sitio web": "javascript:alert(1)"},
+            )
+
+        self.assertEqual(
+            contexto.exception.args[0],
+            {
+                "Sitio web": (
+                    "Debe ser una URL válida con esquema http:// o https://."
+                )
+            },
+        )
+
+    @patch("apps.campos.utils.generar_campo_id", return_value="campo_nuevo")
+    def test_migra_enlace_desde_registro_plano_legado(self, _generar_id):
+        campos, migraciones = normalizar_campos_con_ids(
+            [
+                {
+                    "campo_id": "campo_anterior",
+                    "nombre_campo": "Sitio web",
+                    "tipo_campo": "link",
+                    "migrar_data": True,
+                }
+            ],
+            [
+                {
+                    "campo_id": "campo_anterior",
+                    "nombre_campo": "Sitio web",
+                    "tipo_campo": "text",
+                }
+            ],
+        )
+
+        resultado = aplicar_migraciones_data(
+            [
+                {
+                    "Sitio web": "https://example.org/legado",
+                    "activo": True,
+                }
+            ],
+            migraciones,
+            campos,
+        )
+
+        self.assertEqual(
+            resultado[0]["valores"]["campo_nuevo"],
+            "https://example.org/legado",
+        )
+        self.assertNotIn("Sitio web", resultado[0])
+
+        resultado_reservado = aplicar_migraciones_data(
+            [{"activo": False}],
+            [
+                {
+                    "campo_anterior_id": "campo_anterior",
+                    "campo_anterior_nombre": "activo",
+                    "campo_nuevo_id": "campo_nuevo",
+                    "tipo_nuevo": "link",
+                    "migrar_data": True,
+                }
+            ],
+            campos,
+        )
+
+        self.assertFalse(resultado_reservado[0]["activo"])
+        self.assertIsNone(
+            resultado_reservado[0]["valores"]["campo_nuevo"]
+        )
 
 
 @override_settings(

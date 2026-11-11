@@ -5,7 +5,7 @@
 | Campo | Valor |
 |---|---|
 | Sistema/estado | `observatorios_crud` / AS-IS |
-| Referencia | `3de996b`, 2026-11-10 |
+| Referencia | `1ad6ef3` + `PROY-TOBE-007`, 2026-11-11 |
 | Evidencia | `osiris/apps/campos/`; `osiris/apps/datos/` |
 
 ## Objetivo y alcance
@@ -28,6 +28,7 @@ como operativas.
 | REQ-CAM-005 | Convertir Word/Excel a PDF temporal. | BR-CAM-005: multipart `archivo`, header Bearer sintáctico y validación de formato/límites. |
 | REQ-CAM-006 | Conservar alias `archivos`. | BR-CAM-006: hereda el mismo JSON de datos; no carga bytes. |
 | REQ-CAM-007 | Exponer rutas heredadas. | BR-CAM-007: [INFERIDO] fallan por API antigua de `EstructuraCamposModelo`. |
+| REQ-CAM-008 | Admitir enlaces web. | BR-CAM-008: `link` usa mapping `keyword`; solo acepta URL HTTP(S) absoluta de máximo 2048 caracteres o `null`. |
 
 ## Criterios
 
@@ -39,13 +40,16 @@ como operativas.
   vista previa, entonces retorna PDF `inline` sin conservar temporales.
 - **AC-CAM-004**: Dado un Bearer ausente, cuando se solicita vista previa, entonces
   retorna 401; esto no demuestra autenticación del token.
+- **AC-CAM-005**: Dado un campo `link`, cuando se guarda un valor no HTTP(S), sin
+  esquema o malformado, entonces retorna 400 con detalle asociado al campo.
 
 ## Contratos, NFR y pruebas
 
 Ver [`../api/openapi.yaml`](../api/openapi.yaml) y
 [`../data/modelo-e-indices.md`](../data/modelo-e-indices.md). Existen 9 pruebas de
-vista previa en `apps/campos/tests.py`; no se identificaron pruebas de registros.
-[NO VERIFICADO] Rendimiento con arreglos grandes, concurrencia y mappings reales.
+vista previa y 7 pruebas unitarias del tipo Enlace en `apps/campos/tests.py`; la
+cobertura de registros continúa limitada a su conversión pura. [NO VERIFICADO]
+Rendimiento con arreglos grandes, concurrencia y mappings reales.
 
 ## Riesgos
 

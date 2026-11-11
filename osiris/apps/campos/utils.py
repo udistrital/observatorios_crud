@@ -1,6 +1,21 @@
 import re
 import uuid
 from datetime import datetime
+from ipaddress import ip_address
+from urllib.parse import urlsplit
+
+
+LONGITUD_MAXIMA_ENLACE = 2048
+NOMBRES_RESERVADOS_DATA = {
+    "id",
+    "activo",
+    "fecha_creacion",
+    "fecha_modificacion",
+}
+ETIQUETA_HOST_VALIDA = re.compile(
+    r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$",
+    re.IGNORECASE,
+)
 
 
 TIPOS_CAMPOS_PERMITIDOS = [
@@ -33,6 +48,7 @@ TIPOS_CAMPOS_PERMITIDOS = [
     "constant_keyword",
     "flattened",
     "shape",
+    "link",
 ]
 
 
@@ -49,6 +65,11 @@ def obtener_mapping_tipo_campo(tipo_campo):
                     "type": "keyword"
                 }
             }
+        }
+
+    if tipo_campo == "link":
+        return {
+            "type": "keyword"
         }
 
     if tipo_campo in ["keyword", "constant_keyword"]:
@@ -138,6 +159,81 @@ def convertir_valor_por_tipo(valor, tipo_campo):
 
     if tipo_campo in ["text", "keyword", "constant_keyword"]:
         return str(valor)
+
+    if tipo_campo == "link":
+        enlace = str(valor).strip()
+
+        if not enlace:
+            return None
+
+        if len(enlace) > LONGITUD_MAXIMA_ENLACE:
+            raise ValueError(
+                f"No puede superar {LONGITUD_MAXIMA_ENLACE} caracteres."
+            )
+
+        if re.search(r"[\x00-\x20\x7f\\]", enlace):
+            raise ValueError(
+                "Debe ser una URL válida con esquema http:// o https://."
+            )
+
+        if not re.match(r"^https?://[^/?#]", enlace, re.IGNORECASE):
+            raise ValueError(
+                "Debe ser una URL válida con esquema http:// o https://."
+            )
+
+        try:
+            url = urlsplit(enlace)
+            puerto = url.port
+        except (ValueError, UnicodeError):
+            url = None
+            puerto = None
+
+        if (
+            not url
+            or url.scheme.lower() not in ["http", "https"]
+            or not url.hostname
+            or "%" in url.netloc
+            or (puerto is not None and not 1 <= puerto <= 65535)
+        ):
+            raise ValueError(
+                "Debe ser una URL válida con esquema http:// o https://."
+            )
+
+        if "[" in url.netloc or "]" in url.netloc:
+            try:
+                if ip_address(url.hostname).version != 6:
+                    raise ValueError
+            except ValueError:
+                raise ValueError(
+                    "Debe ser una URL válida con esquema http:// o https://."
+                )
+        else:
+            try:
+                hostname = url.hostname.rstrip(".").encode("idna").decode("ascii")
+            except UnicodeError:
+                hostname = ""
+
+            if (
+                not hostname
+                or len(hostname) > 253
+                or not all(
+                    ETIQUETA_HOST_VALIDA.fullmatch(etiqueta)
+                    for etiqueta in hostname.split(".")
+                )
+            ):
+                raise ValueError(
+                    "Debe ser una URL válida con esquema http:// o https://."
+                )
+
+            if re.fullmatch(r"\d+(?:\.\d+){3}", hostname):
+                try:
+                    ip_address(hostname)
+                except ValueError:
+                    raise ValueError(
+                        "Debe ser una URL válida con esquema http:// o https://."
+                    )
+
+        return enlace
 
     if tipo_campo in ["integer", "long", "short", "byte"]:
         try:
@@ -244,6 +340,7 @@ def normalizar_campos_con_ids(campos_entrantes, campos_actuales=None):
                 migraciones.append(
                     {
                         "campo_anterior_id": campo_id,
+                        "campo_anterior_nombre": campo_actual.get("nombre_campo"),
                         "campo_nuevo_id": nuevo_campo_id,
                         "tipo_nuevo": tipo_campo,
                         "migrar_data": bool(migrar_data),
@@ -337,10 +434,20 @@ def aplicar_migraciones_data(data, migraciones, campos):
 
         for migracion in migraciones:
             campo_anterior_id = migracion.get("campo_anterior_id")
+            campo_anterior_nombre = migracion.get("campo_anterior_nombre")
             campo_nuevo_id = migracion.get("campo_nuevo_id")
             migrar_data = migracion.get("migrar_data", False)
 
+            tiene_valor_por_id = campo_anterior_id in valores
             valor_anterior = valores.pop(campo_anterior_id, None)
+
+            if (
+                not tiene_valor_por_id
+                and campo_anterior_nombre
+                and campo_anterior_nombre not in NOMBRES_RESERVADOS_DATA
+                and campo_anterior_nombre in fila
+            ):
+                valor_anterior = fila.pop(campo_anterior_nombre)
 
             if migrar_data and campo_nuevo_id:
                 campo_nuevo = campos_por_id.get(campo_nuevo_id)
@@ -390,6 +497,7 @@ def obtener_tipos_campos():
         {"label": "Palabra clave constante", "value": "constant_keyword"},
         {"label": "Aplanado", "value": "flattened"},
         {"label": "Forma", "value": "shape"},
+        {"label": "Enlace", "value": "link"},
     ]
 
 def aplicar_filtros(filas, query_params):

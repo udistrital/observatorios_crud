@@ -32,6 +32,7 @@ Consolidar especificaciones del backend CRUD con enfoque en **historias de usuar
 ## TO-BE documentados
 
 - [PROY-TOBE-006 Correlation ID](PROY-TOBE-006_correlation_id_trazabilidad_mid_crud.md)
+- [PROY-TOBE-007 Tipo de campo Enlace](PROY-TOBE-007_tipo_campo_enlace.md)
 
 ## AS-IS canónico
 

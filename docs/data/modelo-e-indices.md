@@ -77,15 +77,20 @@ Registro observado:
   cambiar tipo y opcionalmente intentar migrar valores.
 - [VERIFICADO] Elasticsearch no permite cambiar en sitio un tipo ya mapeado; el
   código añade mappings para campos nuevos.
+- [VERIFICADO] El tipo semántico `link` se conserva en el descriptor del campo,
+  pero su valor se mapea como `keyword`; admite `null` o URL absoluta HTTP(S) de
+  máximo 2048 caracteres.
 - [VERIFICADO] `migrar_data`, `eliminar_data_campos` y validaciones manuales no
   forman un contrato uniforme entre todas las vistas.
 
 ## Tipos admitidos
 
 [VERIFICADO] `osiris/apps/campos/utils.py` enumera tipos textuales, numéricos,
-booleanos, fechas, geoespaciales, red, compuestos y rangos. La lista expuesta por
-`GET /campos/tipos` contiene 30 entradas. La admisión en catálogo no prueba que
-todas las conversiones, filtros y visualizaciones funcionen de extremo a extremo.
+booleanos, fechas, geoespaciales, red, compuestos, rangos y el tipo semántico
+`link`. La lista expuesta por `GET /campos/tipos` contiene 30 entradas. `link`
+se valida como URL HTTP(S) absoluta y se indexa como `keyword`; la admisión de los
+demás tipos no prueba que todas sus conversiones y visualizaciones funcionen de
+extremo a extremo.
 
 ## Consistencia y borrado
 

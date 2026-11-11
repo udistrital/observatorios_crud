@@ -13,8 +13,8 @@ documentales estables para localizar evidencia y pruebas.
 | REQ-ASIS-CRUD-003 | Gestionar características | BR-003 exige factor; AC-003 filtra por `factor_id` | `/caracteristicas/*` | `apps/caracteristicas/views.py` | No identificada | [VERIFICADO] |
 | REQ-ASIS-CRUD-004 | Gestionar aspectos | BR-004 admite referencias de estructura `Documental` o `Tabla`; AC-004 filtra por característica | `/aspectos/*` | `apps/aspectos/views.py` | No identificada | [VERIFICADO] |
 | REQ-ASIS-CRUD-005 | Crear estructura | BR-005 crea índice dinámico y referencia; AC-005 éxito devuelve estructura y referencias | `/estructuras-evidencias/*` | `apps/estructuras/views.py` | No identificada | [VERIFICADO], compensación parcial |
-| REQ-ASIS-CRUD-006 | Definir campos | BR-006 campo usa ID, orden, nombre y tipo; AC-006 GET recupera documento de estructura | `/campos/estructuras/*` | `apps/campos/views.py`, `utils.py` | No identificada | [VERIFICADO] |
-| REQ-ASIS-CRUD-007 | Capturar registros | BR-007 registro se embebe y su ID es posición; AC-007 POST retorna 201 | `/campos/datos/*` | `apps/campos/views.py: DatosEstructuraDocumentoView` | No identificada | [VERIFICADO], ID inestable |
+| REQ-ASIS-CRUD-006 | Definir campos | BR-006 campo usa ID, orden, nombre y tipo; `link` usa mapping `keyword`; AC-006 GET recupera documento de estructura | `/campos/tipos`, `/campos/estructuras/*` | `apps/campos/views.py`, `utils.py` | `TipoCampoEnlaceTests` parcial | [VERIFICADO] |
+| REQ-ASIS-CRUD-007 | Capturar registros | BR-007 registro se embebe y su ID es posición; los enlaces exigen HTTP(S); AC-007 POST retorna 201 | `/campos/datos/*` | `apps/campos/views.py: DatosEstructuraDocumentoView` | `TipoCampoEnlaceTests` cubre conversión | [VERIFICADO], ID inestable |
 | REQ-ASIS-CRUD-008 | Convertir Office a vista previa | BR-008 acepta Word/Excel validado y retorna PDF; AC-008 temporales se eliminan | `/campos/archivos/vista-previa/` | `apps/campos/views.py: VistaPreviaDocumentoView` | `apps/campos/tests.py` | [VERIFICADO], Bearer no autenticado |
 | REQ-ASIS-CRUD-009 | Gestionar observatorios | BR-009 DELETE desactiva; AC-009 crear imagen retorna 201 | `/observatorios/*` | `apps/observatorios/views.py` | `apps/observatorios/tests/` | [VERIFICADO] |
 | REQ-ASIS-CRUD-010 | Gestionar dashboards | BR-010 dashboard deriva índice de gráficos; AC-010 filtra por observatorio | `/dashboards/*` | `apps/dashboards/views.py` | No identificada | [VERIFICADO] |
@@ -26,12 +26,13 @@ documentales estables para localizar evidencia y pruebas.
 | Integración | Requisito relacionado | Consumidor | Evidencia |
 |---|---|---|---|
 | Cliente a CRUD | REQ-001 a REQ-011 | Servicios y componentes Vue | [`matriz_interacciones.md`](matriz_interacciones.md) |
+| Cliente a CRUD, tipo Enlace | `PROY-TOBE-007` / cliente `PROY-TOBE-008` | `Tablero.vue` | `apps/campos/utils.py`; `src/utils/enlaces.js` |
 | Cliente a Gestor y luego CRUD | REQ-007 | `Tablero.vue` | Repositorio cliente, `src/service/gestorDocumentalService.js` |
 | MID a `datosArchivo` | REQ-012 | `observatorios_mid` | `services/observatorios_service.py`; estado legado |
 
 ## Vacíos
 
-- [VERIFICADO] Solo REQ-008 y parte de REQ-009 tienen pruebas identificadas.
+- [VERIFICADO] REQ-008, parte de REQ-009 y los casos Enlace de REQ-006/007 tienen pruebas identificadas.
 - [NO VERIFICADO] No hay cobertura, rendimiento, disponibilidad o límites
   institucionales medidos.
 - [PROPUESTA] Una evolución debe crear IDs TO-BE nuevos, enlazar AC con pruebas y
