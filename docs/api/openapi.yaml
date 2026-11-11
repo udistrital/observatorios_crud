@@ -1,0 +1,1268 @@
+openapi: 3.1.2
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Observatorios CRUD - contrato AS-IS
+  version: 3de996b
+  description: |
+    Contrato reconstruido por inspección estática del checkout local
+    `observatorios_crud@3de996b166430ca180ab372fbabf69f4c12b419c` el
+    2026-11-10. Contiene 33 rutas y 90 operaciones de dominio, más salud.
+    No declara autenticación global porque no está configurada en DRF. Las
+    extensiones `x-verification`, `x-source` y `x-runtime-status` distinguen
+    evidencia y limitaciones. No es el Swagger 2 histórico de `swagger/`.
+  license:
+    name: GPL-3.0-or-later según README del repositorio
+servers:
+  - url: http://localhost:8000
+    description: Ejemplo local, sin credenciales
+tags:
+  - name: Observatorios
+  - name: Procesos
+  - name: Factores
+  - name: Características
+  - name: Aspectos
+  - name: Estructuras
+  - name: Campos
+  - name: Datos heredados
+  - name: Dashboards
+  - name: Gráficos
+  - name: Constructor
+  - name: Operación
+paths:
+  /health/:
+    get:
+      tags: [Operación]
+      operationId: getHealth
+      summary: Comprobar liveness del proceso Django
+      x-source: osiris/apps/utils/views.py:healthcheck
+      x-verification: VERIFICADO
+      description: No comprueba Elasticsearch, LibreOffice ni dependencias externas.
+      responses:
+        '200':
+          description: Respuesta fija de salud
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Health'}
+              example: {Status: Ok, Code: 200}
+
+  /api/{version}/observatorios/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Observatorios]
+      operationId: listObservatorios
+      summary: Listar observatorios
+      x-source: osiris/apps/observatorios/views.py:ObservatorioViewSet.list
+      x-verification: VERIFICADO
+      responses:
+        '200': {$ref: '#/components/responses/Array200'}
+        '500': {$ref: '#/components/responses/Error500'}
+    post:
+      tags: [Observatorios]
+      operationId: createObservatorio
+      summary: Crear observatorio e imagen
+      x-source: osiris/apps/observatorios/views.py:ObservatorioViewSet.create
+      x-verification: VERIFICADO
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: {$ref: '#/components/schemas/ObservatorioCreate'}
+      responses:
+        '201': {$ref: '#/components/responses/Object201'}
+        '400': {$ref: '#/components/responses/Error400'}
+        '500': {$ref: '#/components/responses/Error500'}
+  /api/{version}/observatorios/{id}/:
+    parameters:
+      - {$ref: '#/components/parameters/Version'}
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Observatorios]
+      operationId: retrieveObservatorio
+      summary: Consultar observatorio por observatorio_id
+      x-source: osiris/apps/observatorios/views.py:ObservatorioViewSet.retrieve
+      x-verification: VERIFICADO
+      responses:
+        '200': {$ref: '#/components/responses/Object200'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '500': {$ref: '#/components/responses/Error500'}
+    put:
+      tags: [Observatorios]
+      operationId: updateObservatorio
+      summary: Actualizar parcialmente un observatorio
+      x-source: osiris/apps/observatorios/views.py:ObservatorioViewSet.update
+      x-verification: VERIFICADO
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: {$ref: '#/components/schemas/ObservatorioUpdate'}
+      responses:
+        '200': {$ref: '#/components/responses/Object200'}
+        '400': {$ref: '#/components/responses/Error400'}
+        '500': {$ref: '#/components/responses/Error500'}
+    delete:
+      tags: [Observatorios]
+      operationId: deleteObservatorio
+      summary: Desactivar observatorio
+      x-source: osiris/apps/observatorios/views.py:ObservatorioViewSet.destroy
+      x-verification: VERIFICADO
+      responses:
+        '204': {$ref: '#/components/responses/Empty204'}
+        '500': {$ref: '#/components/responses/Error500'}
+
+  /api/{version}/procesos/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Procesos]
+      operationId: listProcesos
+      summary: Listar procesos por orden y nombre
+      x-source: osiris/apps/procesos/views.py:ProcesoViewSet.list
+      x-verification: VERIFICADO
+      responses:
+        '200': {$ref: '#/components/responses/Array200'}
+        '500': {$ref: '#/components/responses/Error500'}
+    post:
+      tags: [Procesos]
+      operationId: createProceso
+      summary: Crear proceso
+      x-source: osiris/apps/procesos/views.py:ProcesoViewSet.create
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/ProcesoCreate'}
+      responses:
+        '201': {$ref: '#/components/responses/Object201'}
+        '400': {$ref: '#/components/responses/Error400'}
+        '500': {$ref: '#/components/responses/Error500'}
+  /api/{version}/procesos/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Procesos]
+      operationId: retrieveProceso
+      summary: Consultar proceso
+      x-source: osiris/apps/procesos/views.py:ProcesoViewSet.retrieve
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+    put:
+      tags: [Procesos]
+      operationId: updateProceso
+      summary: Actualizar parcialmente un proceso
+      x-source: osiris/apps/procesos/views.py:ProcesoViewSet.update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    patch:
+      tags: [Procesos]
+      operationId: patchProceso
+      summary: Actualizar parcialmente un proceso
+      x-source: osiris/apps/procesos/views.py:ProcesoViewSet.partial_update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    delete:
+      tags: [Procesos]
+      operationId: deleteProceso
+      summary: Desactivar proceso
+      x-source: osiris/apps/procesos/views.py:ProcesoViewSet.destroy
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+
+  /api/{version}/factores/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Factores]
+      operationId: listFactores
+      summary: Listar factores
+      x-source: osiris/apps/factores/views.py:FactorViewSet.list
+      x-verification: VERIFICADO
+      parameters:
+        - {$ref: '#/components/parameters/ProcesoIdQuery'}
+      responses: {'200': {$ref: '#/components/responses/Array200'}, '500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Factores]
+      operationId: createFactor
+      summary: Crear factor y asociarlo a un proceso
+      x-source: osiris/apps/factores/views.py:FactorViewSet.create
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/FactorCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/factores/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Factores]
+      operationId: retrieveFactor
+      summary: Consultar factor
+      x-source: osiris/apps/factores/views.py:FactorViewSet.retrieve
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+    put:
+      tags: [Factores]
+      operationId: updateFactor
+      summary: Actualizar o mover factor
+      x-source: osiris/apps/factores/views.py:FactorViewSet.update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    patch:
+      tags: [Factores]
+      operationId: patchFactor
+      summary: Actualizar parcialmente o mover factor
+      x-source: osiris/apps/factores/views.py:FactorViewSet.partial_update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Factores]
+      operationId: deleteFactor
+      summary: Desactivar factor
+      x-source: osiris/apps/factores/views.py:FactorViewSet.destroy
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+
+  /api/{version}/caracteristicas/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Características]
+      operationId: listCaracteristicas
+      summary: Listar características
+      x-source: osiris/apps/caracteristicas/views.py:CaracteristicaViewSet.list
+      x-verification: VERIFICADO
+      parameters: [{$ref: '#/components/parameters/FactorIdQuery'}]
+      responses: {'200': {$ref: '#/components/responses/Array200'}, '500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Características]
+      operationId: createCaracteristica
+      summary: Crear característica y asociarla a un factor
+      x-source: osiris/apps/caracteristicas/views.py:CaracteristicaViewSet.create
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/CaracteristicaCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/caracteristicas/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Características]
+      operationId: retrieveCaracteristica
+      summary: Consultar característica
+      x-source: osiris/apps/caracteristicas/views.py:CaracteristicaViewSet.retrieve
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+    put:
+      tags: [Características]
+      operationId: updateCaracteristica
+      summary: Actualizar o mover característica
+      x-source: osiris/apps/caracteristicas/views.py:CaracteristicaViewSet.update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    patch:
+      tags: [Características]
+      operationId: patchCaracteristica
+      summary: Actualizar parcialmente o mover característica
+      x-source: osiris/apps/caracteristicas/views.py:CaracteristicaViewSet.partial_update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Características]
+      operationId: deleteCaracteristica
+      summary: Desactivar característica
+      x-source: osiris/apps/caracteristicas/views.py:CaracteristicaViewSet.destroy
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+
+  /api/{version}/aspectos/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Aspectos]
+      operationId: listAspectos
+      summary: Listar aspectos
+      x-source: osiris/apps/aspectos/views.py:AspectoViewSet.list
+      x-verification: VERIFICADO
+      parameters: [{$ref: '#/components/parameters/CaracteristicaIdQuery'}]
+      responses: {'200': {$ref: '#/components/responses/Array200'}, '500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Aspectos]
+      operationId: createAspecto
+      summary: Crear aspecto y asociarlo a una característica
+      x-source: osiris/apps/aspectos/views.py:AspectoViewSet.create
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/AspectoCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/aspectos/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Aspectos]
+      operationId: retrieveAspecto
+      summary: Consultar aspecto
+      x-source: osiris/apps/aspectos/views.py:AspectoViewSet.retrieve
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+    put:
+      tags: [Aspectos]
+      operationId: updateAspecto
+      summary: Actualizar o mover aspecto
+      x-source: osiris/apps/aspectos/views.py:AspectoViewSet.update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    patch:
+      tags: [Aspectos]
+      operationId: patchAspecto
+      summary: Actualizar parcialmente o mover aspecto
+      x-source: osiris/apps/aspectos/views.py:AspectoViewSet.partial_update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Aspectos]
+      operationId: deleteAspecto
+      summary: Desactivar aspecto
+      x-source: osiris/apps/aspectos/views.py:AspectoViewSet.destroy
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+
+  /api/{version}/estructuras-evidencias/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Estructuras]
+      operationId: listEstructurasEvidencias
+      summary: Listar referencias de estructuras de evidencia
+      x-source: osiris/apps/estructuras/views.py:EstructuraViewSet.list
+      x-verification: VERIFICADO
+      parameters: [{$ref: '#/components/parameters/AspectoIdQuery'}]
+      responses: {'200': {$ref: '#/components/responses/Array200'}, '500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Estructuras]
+      operationId: createEstructuraEvidencia
+      summary: Crear índice y estructura de evidencia
+      x-source: osiris/apps/estructuras/views.py:EstructuraViewSet.create
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/EstructuraCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/estructuras-evidencias/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Estructuras]
+      operationId: retrieveEstructuraEvidencia
+      summary: Consultar documento de estructura
+      x-source: osiris/apps/estructuras/views.py:EstructuraViewSet.retrieve
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    put:
+      tags: [Estructuras]
+      operationId: updateEstructuraEvidencia
+      summary: Actualizar metadatos de estructura
+      x-source: osiris/apps/estructuras/views.py:EstructuraViewSet.update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    patch:
+      tags: [Estructuras]
+      operationId: patchEstructuraEvidencia
+      summary: Actualizar parcialmente metadatos de estructura
+      x-source: osiris/apps/estructuras/views.py:EstructuraViewSet.partial_update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Estructuras]
+      operationId: deleteEstructuraEvidencia
+      summary: Desactivar estructura y su referencia
+      x-source: osiris/apps/estructuras/views.py:EstructuraViewSet.destroy
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+
+  /api/{version}/campos/tipos:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Campos]
+      operationId: listTiposCampo
+      summary: Obtener catálogo de tipos de campo soportados
+      description: |
+        Incluye tipos nativos de Elasticsearch y el tipo semántico `link`,
+        presentado como `Enlace` y respaldado internamente por mapping `keyword`.
+      x-source: osiris/apps/campos/views.py:TiposCamposVista.get
+      x-verification: VERIFICADO
+      responses:
+        '200':
+          description: Catálogo de tipos con etiqueta y valor técnico
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/TipoCampo'}
+  /api/{version}/campos/estructuras/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Campos]
+      operationId: listDefinicionesEstructura
+      summary: Rechazar listado sin ID
+      x-source: osiris/apps/campos/views.py:EstructuraCamposViewSet.list
+      x-verification: VERIFICADO
+      x-runtime-status: siempre responde 400
+      responses: {'400': {$ref: '#/components/responses/Error400'}}
+    post:
+      tags: [Campos]
+      operationId: createDefinicionEstructura
+      summary: Rechazar creación por esta ruta
+      x-source: osiris/apps/campos/views.py:EstructuraCamposViewSet.create
+      x-verification: VERIFICADO
+      x-runtime-status: siempre responde 405; crear mediante estructuras-evidencias
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'405': {$ref: '#/components/responses/Error405'}}
+  /api/{version}/campos/estructuras/{estructura_id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/EstructuraId'}]
+    get:
+      tags: [Campos]
+      operationId: retrieveDefinicionEstructura
+      summary: Consultar estructura, campos y datos
+      x-source: osiris/apps/campos/views.py:EstructuraCamposViewSet.retrieve
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    put:
+      tags: [Campos]
+      operationId: updateDefinicionEstructura
+      summary: Actualizar campos, datos o metadatos
+      x-source: osiris/apps/campos/views.py:EstructuraCamposViewSet.update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/EstructuraCamposUpdate'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    patch:
+      tags: [Campos]
+      operationId: patchDefinicionEstructura
+      summary: Actualizar parcialmente campos, datos o metadatos
+      x-source: osiris/apps/campos/views.py:EstructuraCamposViewSet.partial_update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/EstructuraCamposUpdate'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Campos]
+      operationId: clearDefinicionEstructura
+      summary: Vaciar campos y datos sin eliminar índice
+      x-source: osiris/apps/campos/views.py:EstructuraCamposViewSet.destroy
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '500': {$ref: '#/components/responses/Error500'}}
+
+  /api/{version}/campos/datos/{estructura_id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/EstructuraId'}]
+    get:
+      tags: [Campos]
+      operationId: listRegistrosEstructura
+      summary: Listar, filtrar, ordenar y paginar registros embebidos
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.get
+      x-verification: VERIFICADO
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+        - {$ref: '#/components/parameters/Ordering'}
+      responses: {'200': {$ref: '#/components/responses/Paginated200'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Campos]
+      operationId: createRegistroEstructura
+      summary: Crear registro embebido
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.post
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    put:
+      tags: [Campos]
+      operationId: replaceRegistroSinId
+      summary: Rechazar reemplazo sin ID de registro
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.put
+      x-verification: VERIFICADO
+      x-runtime-status: siempre responde 400
+      requestBody: {$ref: '#/components/requestBodies/RegistroCreate'}
+      responses: {'400': {$ref: '#/components/responses/Error400'}}
+    patch:
+      tags: [Campos]
+      operationId: patchRegistroSinId
+      summary: Rechazar cambio de estado sin ID de registro
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.patch
+      x-verification: VERIFICADO
+      x-runtime-status: siempre responde 400
+      requestBody: {$ref: '#/components/requestBodies/RegistroPatch'}
+      responses: {'400': {$ref: '#/components/responses/Error400'}}
+    delete:
+      tags: [Campos]
+      operationId: clearRegistrosEstructura
+      summary: Vaciar todos los registros embebidos
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.delete
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+  /api/{version}/campos/datos/{estructura_id}/{registro_id}/:
+    parameters:
+      - {$ref: '#/components/parameters/Version'}
+      - {$ref: '#/components/parameters/EstructuraId'}
+      - {$ref: '#/components/parameters/RegistroId'}
+    get:
+      tags: [Campos]
+      operationId: listRegistrosConIdIgnorado
+      summary: Listar registros; el ID de la ruta se ignora
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.get
+      x-verification: VERIFICADO
+      x-runtime-status: registro_id ignorado
+      responses: {'200': {$ref: '#/components/responses/Paginated200'}, '404': {$ref: '#/components/responses/Error404'}}
+    post:
+      tags: [Campos]
+      operationId: createRegistroConIdIgnorado
+      summary: Crear registro; el ID de la ruta se ignora
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.post
+      x-verification: VERIFICADO
+      x-runtime-status: registro_id ignorado
+      requestBody: {$ref: '#/components/requestBodies/RegistroCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    put:
+      tags: [Campos]
+      operationId: replaceRegistroEstructura
+      summary: Reemplazar valores por posición
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.put
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroCreate'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    patch:
+      tags: [Campos]
+      operationId: patchRegistroEstructura
+      summary: Cambiar activo por posición
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.patch
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroPatch'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    delete:
+      tags: [Campos]
+      operationId: deleteRegistroEstructura
+      summary: Eliminar físicamente una posición del arreglo
+      x-source: osiris/apps/campos/views.py:DatosEstructuraDocumentoView.delete
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+
+  /api/{version}/campos/archivos/vista-previa/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    post:
+      tags: [Campos]
+      operationId: previewOfficeDocument
+      summary: Convertir temporalmente Word o Excel a PDF
+      description: |
+        El header Bearer solo se comprueba sintácticamente; no representa una
+        validación de identidad, firma, expiración o rol.
+      x-source: osiris/apps/campos/views.py:VistaPreviaDocumentoView.post
+      x-verification: VERIFICADO
+      parameters:
+        - {$ref: '#/components/parameters/AuthorizationSyntax'}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archivo]
+              properties:
+                archivo: {type: string, format: binary}
+      responses:
+        '200':
+          description: PDF temporal
+          headers:
+            Content-Disposition: {schema: {type: string}, description: inline}
+            Cache-Control: {schema: {type: string}, description: private, no-store}
+            X-Content-Type-Options: {schema: {type: string}, description: nosniff}
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '413': {$ref: '#/components/responses/Error413'}
+        '415': {$ref: '#/components/responses/Error415'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '500': {$ref: '#/components/responses/Error500'}
+        '503': {$ref: '#/components/responses/Error503'}
+        '504': {$ref: '#/components/responses/Error504'}
+  /api/{version}/campos/archivos/{estructura_id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/EstructuraId'}]
+    get:
+      tags: [Campos]
+      operationId: listAliasArchivos
+      summary: Alias JSON de listado de registros
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      x-runtime-status: no maneja binarios; hereda DatosEstructuraDocumentoView
+      responses: {'200': {$ref: '#/components/responses/Paginated200'}, '404': {$ref: '#/components/responses/Error404'}}
+    post:
+      tags: [Campos]
+      operationId: createAliasArchivo
+      summary: Alias JSON de creación de registro
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    put:
+      tags: [Campos]
+      operationId: replaceAliasArchivoSinId
+      summary: Rechazar reemplazo alias sin ID
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroCreate'}
+      responses: {'400': {$ref: '#/components/responses/Error400'}}
+    patch:
+      tags: [Campos]
+      operationId: patchAliasArchivoSinId
+      summary: Rechazar patch alias sin ID
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroPatch'}
+      responses: {'400': {$ref: '#/components/responses/Error400'}}
+    delete:
+      tags: [Campos]
+      operationId: clearAliasArchivos
+      summary: Vaciar registros mediante alias JSON
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}}
+  /api/{version}/campos/archivos/{estructura_id}/{registro_id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/EstructuraId'}, {$ref: '#/components/parameters/RegistroId'}]
+    get:
+      tags: [Campos]
+      operationId: listAliasArchivosConIdIgnorado
+      summary: Alias JSON; ignora ID y lista
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Paginated200'}, '404': {$ref: '#/components/responses/Error404'}}
+    post:
+      tags: [Campos]
+      operationId: createAliasArchivoConIdIgnorado
+      summary: Alias JSON; ignora ID y crea
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    put:
+      tags: [Campos]
+      operationId: replaceAliasArchivo
+      summary: Alias JSON de reemplazo por posición
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroCreate'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    patch:
+      tags: [Campos]
+      operationId: patchAliasArchivo
+      summary: Alias JSON de cambio de activo
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/RegistroPatch'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+    delete:
+      tags: [Campos]
+      operationId: deleteAliasArchivo
+      summary: Alias JSON de borrado por posición
+      x-source: osiris/apps/campos/views.py:ArchivosDatosView
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
+
+  /api/{version}/datos/{estructura_id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/EstructuraId'}]
+    get:
+      tags: [Datos heredados]
+      operationId: listDatosLegacy
+      summary: Listar datos de índice heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosViewSet.list
+      x-verification: INFERIDO
+      x-runtime-status: probable fallo en initial por API de modelo inexistente
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Datos heredados]
+      operationId: createDatosLegacy
+      summary: Cargar FORM, CSV o JSON en flujo heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosViewSet.create
+      x-verification: INFERIDO
+      x-runtime-status: probable fallo en initial por API de modelo inexistente
+      requestBody: {$ref: '#/components/requestBodies/LegacyData'}
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Datos heredados]
+      operationId: deleteDatosLegacy
+      summary: Desactivar datos masivamente en flujo heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosViewSet.destroy
+      x-verification: INFERIDO
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/datos/{estructura_id}/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/EstructuraId'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Datos heredados]
+      operationId: retrieveDatosLegacy
+      summary: Consultar dato heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosViewSet.retrieve
+      x-verification: INFERIDO
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+    put:
+      tags: [Datos heredados]
+      operationId: updateDatosLegacy
+      summary: Actualizar dato heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosViewSet.update
+      x-verification: INFERIDO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Datos heredados]
+      operationId: deleteDatoLegacy
+      summary: Desactivar dato heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosViewSet.destroy
+      x-verification: INFERIDO
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/datosArchivo/{estructura_id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/EstructuraId'}]
+    get:
+      tags: [Datos heredados]
+      operationId: listDatosArchivoLegacy
+      summary: Listar metadatos documentales heredados
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosArchivoViewSet.list
+      x-verification: INFERIDO
+      x-runtime-status: probable fallo por atributos de modelo inexistentes
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Datos heredados]
+      operationId: createDatosArchivoLegacy
+      summary: Crear metadatos documentales heredados
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosArchivoViewSet.create
+      x-verification: INFERIDO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Datos heredados]
+      operationId: deleteDatosArchivoLegacy
+      summary: Borrar metadatos documentales heredados
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosArchivoViewSet.destroy
+      x-verification: INFERIDO
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/datosArchivo/{estructura_id}/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/EstructuraId'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Datos heredados]
+      operationId: retrieveDatoArchivoLegacy
+      summary: Consultar metadato documental heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosArchivoViewSet.retrieve
+      x-verification: INFERIDO
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+    put:
+      tags: [Datos heredados]
+      operationId: updateDatoArchivoLegacy
+      summary: Actualizar metadato documental heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosArchivoViewSet.update
+      x-verification: INFERIDO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Datos heredados]
+      operationId: deleteDatoArchivoLegacy
+      summary: Borrar metadato documental heredado
+      deprecated: true
+      x-source: osiris/apps/datos/views.py:DatosArchivoViewSet.destroy
+      x-verification: INFERIDO
+      responses: {'500': {$ref: '#/components/responses/Error500'}}
+
+  /api/{version}/dashboards/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Dashboards]
+      operationId: listDashboards
+      summary: Listar dashboards
+      x-source: osiris/apps/dashboards/views.py:DashboardViewSet.list
+      x-verification: VERIFICADO
+      parameters:
+        - name: observatorio
+          in: query
+          required: false
+          schema: {type: string}
+      responses: {'200': {$ref: '#/components/responses/Array200'}, '500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Dashboards]
+      operationId: createDashboard
+      summary: Crear dashboard e índice de gráficos
+      x-source: osiris/apps/elasticsearch_utils/views.py:ElasticsearchViewSet.create
+      x-verification: VERIFICADO
+      x-runtime-status: el modelo puede retornar cuerpo nulo en 201
+      requestBody: {$ref: '#/components/requestBodies/DashboardCreate'}
+      responses: {'201': {$ref: '#/components/responses/ObjectOrNull201'}, '400': {$ref: '#/components/responses/Error400'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/dashboards/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Dashboards]
+      operationId: retrieveDashboard
+      summary: Consultar dashboard
+      x-source: osiris/apps/elasticsearch_utils/views.py:ElasticsearchViewSet.retrieve
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    put:
+      tags: [Dashboards]
+      operationId: updateDashboard
+      summary: Actualizar dashboard y opcionalmente ordenar gráficos
+      x-source: osiris/apps/dashboards/views.py:DashboardViewSet.update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Dashboards]
+      operationId: deleteDashboard
+      summary: Desactivar dashboard
+      x-source: osiris/apps/elasticsearch_utils/views.py:ElasticsearchViewSet.destroy
+      x-verification: VERIFICADO
+      responses: {'204': {$ref: '#/components/responses/Empty204'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/graficos/{dashboard_id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/DashboardId'}]
+    get:
+      tags: [Gráficos]
+      operationId: listGraficos
+      summary: Listar gráficos activos de dashboard
+      x-source: osiris/apps/dashboards/views.py:GraficoViewSet.list
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Array200'}, '400': {$ref: '#/components/responses/Error400'}, '500': {$ref: '#/components/responses/Error500'}}
+    post:
+      tags: [Gráficos]
+      operationId: createGrafico
+      summary: Crear gráfico en dashboard
+      x-source: osiris/apps/dashboards/views.py:GraficoViewSet.create
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GraficoCreate'}
+      responses: {'201': {$ref: '#/components/responses/Object201'}, '400': {$ref: '#/components/responses/Error400'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/graficos/{dashboard_id}/{id}/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/DashboardId'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Gráficos]
+      operationId: retrieveGrafico
+      summary: Consultar gráfico
+      x-source: osiris/apps/dashboards/views.py:GraficoViewSet.retrieve
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    put:
+      tags: [Gráficos]
+      operationId: updateGrafico
+      summary: Actualizar gráfico
+      x-source: osiris/apps/dashboards/views.py:GraficoViewSet.update
+      x-verification: VERIFICADO
+      requestBody: {$ref: '#/components/requestBodies/GenericObject'}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+    delete:
+      tags: [Gráficos]
+      operationId: deleteGrafico
+      summary: Desactivar gráfico
+      x-source: osiris/apps/dashboards/views.py:GraficoViewSet.destroy
+      x-verification: VERIFICADO
+      responses: {'204': {$ref: '#/components/responses/Empty204'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/graficos/{dashboard_id}/{id}/construir/:
+    parameters: [{$ref: '#/components/parameters/Version'}, {$ref: '#/components/parameters/DashboardId'}, {$ref: '#/components/parameters/Id'}]
+    get:
+      tags: [Gráficos]
+      operationId: buildGrafico
+      summary: Ejecutar agregación de un gráfico
+      x-source: osiris/apps/dashboards/views.py:GraficoViewSet.construir
+      x-verification: INFERIDO
+      x-runtime-status: usa API antigua de EstructuraCamposModelo
+      responses: {'404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+
+  /api/{version}/constructor_graficos/tipo_operaciones/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Constructor]
+      operationId: listTiposOperacionGrafico
+      summary: Obtener catálogo de operaciones
+      x-source: osiris/apps/graficos/views.py:VistaTipoOperaciones.get
+      x-verification: VERIFICADO
+      responses: {'200': {$ref: '#/components/responses/Array200'}}
+  /api/{version}/constructor_graficos/campos_sugeridos/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Constructor]
+      operationId: listCamposSugeridosGrafico
+      summary: Sugerir campos por operación y estructura
+      x-source: osiris/apps/graficos/views.py:VistaCamposSugeridos.get
+      x-verification: INFERIDO
+      x-runtime-status: entradas válidas alcanzan API antigua de modelo
+      parameters:
+        - {name: operacion, in: query, required: true, schema: {type: string}}
+        - {name: estructura, in: query, required: true, schema: {type: string}}
+      responses: {'400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}, '500': {$ref: '#/components/responses/Error500'}}
+  /api/{version}/constructor_graficos/configuracion_grafico/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    get:
+      tags: [Constructor]
+      operationId: getConfiguracionGrafico
+      summary: Obtener configuración requerida por tipo
+      x-source: osiris/apps/graficos/views.py:VistaObtenerConfiguracionGrafico.get
+      x-verification: VERIFICADO
+      parameters:
+        - {name: tipo, in: query, required: true, schema: {type: string, enum: [pie, barras, linea, multiple_linea, heatmap]}}
+      responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}}
+  /api/{version}/constructor_graficos/probar_configuracion/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    post:
+      tags: [Constructor]
+      operationId: testConfiguracionGrafico
+      summary: Probar una configuración contra una estructura
+      x-source: osiris/apps/graficos/views.py:VistaProbarConfiguracionGrafico.post
+      x-verification: INFERIDO
+      x-runtime-status: usa API antigua de EstructuraCamposModelo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [configuracion, estructura]
+              properties:
+                configuracion: {type: object, additionalProperties: true}
+                estructura: {type: string}
+      responses: {'400': {$ref: '#/components/responses/Error400'}, '500': {$ref: '#/components/responses/Error500'}}
+
+components:
+  parameters:
+    Version:
+      name: version
+      in: path
+      required: true
+      description: Segmento libre; el código no restringe valores. El cliente usa v1.
+      schema: {type: string, minLength: 1}
+      example: v1
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {type: string}
+    EstructuraId:
+      name: estructura_id
+      in: path
+      required: true
+      description: Nombre/ID del índice dinámico de estructura.
+      schema: {type: string}
+    RegistroId:
+      name: registro_id
+      in: path
+      required: true
+      description: Posición decimal actual dentro del arreglo data; no es estable.
+      schema: {type: integer, minimum: 0}
+    DashboardId:
+      name: dashboard_id
+      in: path
+      required: true
+      schema: {type: string}
+    ProcesoIdQuery:
+      name: proceso_id
+      in: query
+      required: false
+      schema: {type: string}
+    FactorIdQuery:
+      name: factor_id
+      in: query
+      required: false
+      schema: {type: string}
+    CaracteristicaIdQuery:
+      name: caracteristica_id
+      in: query
+      required: false
+      schema: {type: string}
+    AspectoIdQuery:
+      name: aspecto_id
+      in: query
+      required: false
+      schema: {type: string}
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: {type: integer, minimum: 1, default: 1}
+    PageSize:
+      name: page_size
+      in: query
+      required: false
+      description: El código no impone máximo.
+      schema: {type: integer, minimum: 1, default: 10}
+    Ordering:
+      name: ordering
+      in: query
+      required: false
+      description: Nombre de campo o prefijo menos para descendente.
+      schema: {type: string}
+    AuthorizationSyntax:
+      name: Authorization
+      in: header
+      required: true
+      description: Solo se exige la forma Bearer con texto; no se valida el token.
+      schema: {type: string, pattern: '^Bearer .+$'}
+
+  requestBodies:
+    GenericObject:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/AnyObject'}
+    ProcesoCreate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ProcesoCreate'}
+    FactorCreate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/FactorCreate'}
+    CaracteristicaCreate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/CaracteristicaCreate'}
+    AspectoCreate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/AspectoCreate'}
+    EstructuraCreate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/EstructuraCreate'}
+    EstructuraCamposUpdate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/EstructuraCamposUpdate'}
+    RegistroCreate:
+      required: true
+      content:
+        application/json:
+          schema:
+            description: En ambas formas, un valor de campo `link` es `null` o URL absoluta HTTP(S) de máximo 2048 caracteres.
+            oneOf:
+              - {$ref: '#/components/schemas/RegistroValores'}
+              - {$ref: '#/components/schemas/AnyObject'}
+    RegistroPatch:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: {activo: {type: boolean}}
+    DashboardCreate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/DashboardCreate'}
+    GraficoCreate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/GraficoCreate'}
+    LegacyData:
+      required: true
+      content:
+        application/json: {schema: {$ref: '#/components/schemas/AnyObject'}}
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              formato: {type: string, enum: [FORM, CSV, JSON]}
+              archivo: {type: string, format: binary}
+
+  responses:
+    Object200:
+      description: Objeto JSON según el recurso
+      content: {application/json: {schema: {$ref: '#/components/schemas/AnyObject'}}}
+    Array200:
+      description: Arreglo JSON sin envoltura de paginación
+      content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/AnyObject'}}}}
+    Paginated200:
+      description: Página manual de registros embebidos
+      content: {application/json: {schema: {$ref: '#/components/schemas/Paginated'}}}
+    Object201:
+      description: Recurso creado
+      content: {application/json: {schema: {$ref: '#/components/schemas/AnyObject'}}}
+    ObjectOrNull201:
+      description: Recurso creado; el modelo de dashboard puede producir cuerpo nulo
+      content: {application/json: {schema: {oneOf: [{$ref: '#/components/schemas/AnyObject'}, {type: 'null'}]}}}
+    Empty204: {description: Operación completada sin cuerpo}
+    Error400: {$ref: '#/components/responses/ErrorGeneric400'}
+    ErrorGeneric400:
+      description: Solicitud o validación inválida; forma no uniforme
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error401:
+      description: Header Bearer ausente o sin texto
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error404:
+      description: Recurso no encontrado; forma no uniforme
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error405:
+      description: Método rechazado por el handler
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error413:
+      description: Límite de entrada, salida o expansión superado
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error415:
+      description: Extensión, MIME, firma o contenido Office rechazado
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error422:
+      description: Conversión o PDF resultante inválido
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error429:
+      description: Tasa excedida o conversor ocupado
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error500:
+      description: Error no controlado o de Elasticsearch; forma no uniforme
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error503:
+      description: LibreOffice o usuario de conversión no disponible
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error504:
+      description: Timeout de conversión
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+
+  schemas:
+    AnyObject:
+      type: object
+      additionalProperties: true
+      description: Esquema abierto porque el handler no define una respuesta estable completa.
+    ErrorVariant:
+      type: object
+      additionalProperties: true
+      description: Puede contener status, message, data, error, detalle o detail.
+    Health:
+      type: object
+      required: [Status, Code]
+      properties:
+        Status: {type: string, const: Ok}
+        Code: {type: integer, const: 200}
+    ObservatorioCreate:
+      type: object
+      required: [nombre, descripcion, imagen]
+      properties:
+        nombre: {type: string}
+        descripcion: {type: string}
+        imagen: {type: string, format: binary}
+        activo: {type: boolean}
+    ObservatorioUpdate:
+      type: object
+      properties:
+        nombre: {type: string}
+        descripcion: {type: string}
+        imagen: {type: string, format: binary}
+        activo: {type: boolean}
+    ProcesoCreate:
+      type: object
+      required: [nombre, fecha_inicio, fecha_fin]
+      properties:
+        nombre: {type: string}
+        descripcion: {type: string}
+        dependencia_responsable: {type: string}
+        objetivo: {type: string}
+        factores: {type: array, items: {type: string}}
+        fecha_inicio: {type: string, description: YYYY-MM-DD o ISO 8601}
+        fecha_fin: {type: string, description: YYYY-MM-DD o ISO 8601}
+        orden: {type: integer, minimum: 0}
+        activo: {type: boolean}
+    FactorCreate:
+      type: object
+      required: [proceso_id, nombre]
+      properties:
+        proceso_id: {type: string}
+        nombre: {type: string}
+        descripcion: {type: string}
+        calificacion: {type: number}
+        caracteristicas: {type: array, items: {type: string}}
+        orden: {type: integer, minimum: 0}
+        activo: {type: boolean}
+    CaracteristicaCreate:
+      type: object
+      required: [factor_id, nombre, descripcion]
+      properties:
+        factor_id: {type: string}
+        nombre: {type: string}
+        descripcion: {type: string}
+        calificacion: {type: number}
+        aspectos: {type: array, items: {type: string}}
+        orden: {type: integer, minimum: 0}
+        activo: {type: boolean}
+    AspectoCreate:
+      type: object
+      required: [caracteristica_id, nombre]
+      properties:
+        caracteristica_id: {type: string}
+        nombre: {type: string}
+        estructuras_evidencias: {type: array, items: {$ref: '#/components/schemas/AnyObject'}}
+        orden: {type: integer, minimum: 0}
+        activo: {type: boolean}
+    EstructuraCreate:
+      type: object
+      required: [aspecto_id, tipo_evidencia, nombre]
+      properties:
+        aspecto_id: {type: string}
+        tipo_evidencia: {type: string, enum: [Documental, Tabla]}
+        nombre: {type: string}
+        campos: {type: array, items: {$ref: '#/components/schemas/Campo'}}
+        data: {type: array, items: {$ref: '#/components/schemas/AnyObject'}}
+        orden: {type: integer, minimum: 0}
+        activo: {type: boolean}
+    Campo:
+      type: object
+      properties:
+        campo_id: {type: string}
+        orden: {type: integer, minimum: 0}
+        nombre_campo: {type: string}
+        tipo_campo:
+          type: string
+          description: Tipo soportado por el catálogo; `link` representa una URL HTTP(S) y usa mapping `keyword`.
+          example: link
+        activo: {type: boolean}
+        migrar_data: {type: boolean}
+    TipoCampo:
+      type: object
+      required: [label, value]
+      properties:
+        label: {type: string, example: Enlace}
+        value: {type: string, example: link}
+    EstructuraCamposUpdate:
+      type: object
+      properties:
+        nombre: {type: string}
+        orden: {type: integer, minimum: 0}
+        activo: {type: boolean}
+        campos: {type: array, items: {$ref: '#/components/schemas/Campo'}}
+        data: {type: array, items: {$ref: '#/components/schemas/AnyObject'}}
+        eliminar_data_campos: {type: array, items: {type: string}}
+    RegistroValores:
+      type: object
+      description: Para campos `link`, el valor es `null` o una URL absoluta HTTP(S) de máximo 2048 caracteres.
+      required: [valores]
+      properties:
+        valores: {type: object, additionalProperties: true}
+    Paginated:
+      type: object
+      required: [count, page, page_size, results]
+      properties:
+        count: {type: integer, minimum: 0}
+        page: {type: integer, minimum: 1}
+        page_size: {type: integer, minimum: 1}
+        results: {type: array, items: {$ref: '#/components/schemas/AnyObject'}}
+    DashboardCreate:
+      type: object
+      required: [nombre, descripcion, observatorio, columnas]
+      properties:
+        nombre: {type: string}
+        descripcion: {type: string}
+        observatorio: {type: string}
+        columnas: {type: integer}
+        activo: {type: boolean}
+    GraficoCreate:
+      type: object
+      required: [nombre, descripcion, configuracion, columna, fila, estructura]
+      properties:
+        nombre: {type: string}
+        descripcion: {type: string}
+        configuracion: {type: object, additionalProperties: true}
+        columna: {type: integer}
+        fila: {type: integer}
+        estructura: {type: string}

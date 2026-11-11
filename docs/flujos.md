@@ -1,5 +1,8 @@
 # Flujos funcionales y técnicos — observatorios_crud
 
+> Estado: resumen. Las secuencias verificadas y limitaciones están en
+> [`sdd/arquitectura-as-is.md`](sdd/arquitectura-as-is.md).
+
 ## Flujo: CRUD de entidades de observatorios
 ### Objetivo
 Gestionar creación, consulta, edición y desactivación de entidades del dominio.
@@ -10,23 +13,23 @@ Gestionar creación, consulta, edición y desactivación de entidades del domini
 
 ### Flujo principal
 1. Cliente invoca endpoint `api/v1/...`.
-2. API valida request y permisos.
+2. API valida request; [VERIFICADO] no hay permisos de dominio globales.
 3. Ejecuta operación en Elasticsearch.
-4. Devuelve respuesta estandarizada.
+4. Devuelve una respuesta cuya forma depende del handler; no existe un formato único de error.
 
-## Flujo: Sincronización de metadatos documentales
+## Flujo activo: metadatos documentales
 ### Objetivo
-Persistir referencia documental recibida vía `observatorios_mid`.
+Persistir metadatos y hash enviados directamente por `observatorios_cliente`.
 
 ### Actores involucrados
-- `observatorios_mid` (orquestador documental).
+- `observatorios_cliente` (orquesta Gestor Documental y CRUD).
 - `observatorios_crud`.
 
 ### Flujo principal
-1. MID invoca endpoint de `datosArchivo`.
-2. CRUD crea/actualiza documento de metadatos.
-3. Se retorna identificador/estado para cierre del flujo en MID.
+1. El cliente carga el binario al Gestor Documental.
+2. El cliente invoca `/campos/datos/{estructura}/` con metadatos y hash.
+3. CRUD actualiza `data` de la estructura y responde al cliente.
 
 ### Brechas
-- Formalizar JSON contract de `datosArchivo` por versión.
-- Definir catálogo común de errores funcionales y técnicos.
+- `datosArchivo` permanece como ruta heredada y [INFERIDO] no operativa.
+- El contrato de errores sigue siendo heterogéneo.

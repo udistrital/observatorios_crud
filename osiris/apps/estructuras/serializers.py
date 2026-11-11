@@ -33,6 +33,7 @@ TIPOS_CAMPO_PERMITIDOS = [
     "constant_keyword",
     "flattened",
     "shape",
+    "link",
 ]
 
 
