@@ -8,6 +8,7 @@
 | PROY-TOBE-004 | Especificación de paginación, ordenamiento y filtros por endpoint | Medio | Medio | S | `apps/datos/views.py` y módulos homólogos | `docs/flujos.md` |
 | PROY-TOBE-005 | Endurecer operación local: validación previa/creación de `elastic_net` en `run_crud.sh` y checklist de conectividad Elastic | Medio | Medio | S | `run_crud.sh`, `osiris/docker-compose.yml` | `README.md` sección troubleshooting |
 | PROY-TOBE-006 | Correlation-id y trazabilidad distribuida para flujos con MID (`datosArchivo`) | Alto | Medio | S | `observatorios_mid`, `osiris/apps/datos/*`, capa de logging/middleware | `docs/sdd/matriz_interacciones.md`, `docs/sdd/correspondencia_tobe_crud_mid.md` |
+| PROY-TOBE-007 | Tipo semántico Enlace para campos de estructuras Tabla | Alto | Medio | S | `observatorios_cliente`, `apps/campos/*`, `apps/estructuras/serializers.py` | `docs/specs/PROY-ASIS-003_campos_y_registros.md` |
 
 ## Nota
 - Convención vigente de requerimientos nuevos: `PROY-TOBE-XXX`.
