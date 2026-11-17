@@ -2,9 +2,9 @@
 
 ## Referencia y límites
 
-[VERIFICADO] Documento basado en `observatorios_crud@3de996b` inspeccionado el
-2026-11-10. No se iniciaron contenedores, no se ejecutaron migraciones y no se
-contactaron AWS ni Elasticsearch.
+[VERIFICADO] Documento actualizado por inspección estática de `f51497c` y la
+implementación local de `PROY-TOBE-008` el 2026-11-12. No se contactaron AWS,
+Elasticsearch ni Gestor Documental; no se realizó una verificación end-to-end.
 
 ## Dependencias
 
@@ -27,11 +27,24 @@ documentación.
 | Elasticsearch | `ELASTICSEARCH_HOST`, `ELASTICSEARCH_PORT`, `ELASTICSEARCH_SCHEME`, `ELASTICSEARCH_MAIN_INDEX`, `ELASTICSEARCH_USERNAME`, `ELASTICSEARCH_PASSWORD` |
 | AWS SSM | `PARAMETER_STORE`, `AWS_REGION` |
 | Vista previa | `LIBREOFFICE_EXECUTABLE`, `LIBREOFFICE_USER`, `DOCUMENT_PREVIEW_MAX_BYTES`, `DOCUMENT_PREVIEW_MAX_PDF_BYTES`, `DOCUMENT_PREVIEW_TIMEOUT_SECONDS`, `DOCUMENT_PREVIEW_RATE` |
-| Plantilla pero no gobernantes en AS-IS | `DEBUG`, `ALLOWED_HOSTS`, `CORS_ALLOW_ALL_ORIGINS`, `CORS_ALLOWED_ORIGINS` |
+| Referencias | `DOCUMENT_REFERENCE_KEY` |
+| Proxy documental | `GESTOR_DOCUMENTAL` |
+| Plantilla pero no gobernantes en AS-IS | `ALLOWED_HOSTS`, `CORS_ALLOW_ALL_ORIGINS`, `CORS_ALLOWED_ORIGINS` |
 
-[VERIFICADO] `DEBUG=True` y `ALLOWED_HOSTS=["*"]` están fijados en settings. La
+[VERIFICADO] `DEBUG` se lee del entorno con predeterminado `True` y
+`ALLOWED_HOSTS=["*"]` está fijado en settings. La
 política CORS depende de `PARAMETER_STORE`, no solamente de las variables con
 nombre CORS.
+
+`DOCUMENT_REFERENCE_KEY` debe ser una clave Fernet real y no tiene valor
+predeterminado útil. `GESTOR_DOCUMENTAL` debe ser HTTPS. La política operativa se
+define directamente en `settings.py`, no en entorno ni SSM: TTL 7 días,
+conexión 5 s, lectura 30 s, lectura upstream total 90 s, respuesta 150 MiB,
+spool en memoria 1 MiB, concurrencia 2 por proceso y tasa 30/min.
+
+`run_crud.sh` genera una clave aleatoria en el `.env` ignorado solo para el modo
+local sin `PARAMETER_STORE` y no imprime su valor. Si SSM está activo, una clave
+ausente o inválida detiene el arranque para exigir gestión externa del secreto.
 
 ## Arranque documentado
 
@@ -57,9 +70,18 @@ autoriza ejecutarlas en un ambiente compartido.
 
 ## Contenedores
 
-- [VERIFICADO] `osiris/Dockerfile` sirve con Gunicorn y dos workers.
-- [VERIFICADO] Los Compose de la API usan `runserver`, incluso el archivo con nombre
-  de producción.
+- [VERIFICADO] `osiris/Dockerfile` y `docker-compose-prod.yml` sirven producción
+  con Gunicorn `gthread`, 2 workers, 4 threads por worker y timeout de 240 s.
+- [VERIFICADO] El Compose local conserva `runserver`.
+- [VERIFICADO] El semáforo del proxy es local a cada proceso: el valor
+  fijo 2 permite dos consultas documentales simultáneas
+  por worker, cuatro agregadas con dos workers si ambos tienen capacidad. El cupo
+  se libera al cerrar la respuesta, no al terminar el spool upstream; por ello
+  quedan dos threads por worker para otras solicitudes aun ante clientes lentos.
+- [VERIFICADO] En `gthread`, `--timeout` vigila la actividad del worker y no es un
+  deadline individual de respuesta. El plazo estricto implementado por la
+  aplicación cubre la lectura upstream; la salida al cliente queda acotada por el
+  semáforo y por los límites del gateway desplegado.
 - [VERIFICADO] No existe `.dockerignore`; el contexto `osiris/` puede incluir
   archivos locales no destinados a imagen.
 - [VERIFICADO] Los Compose montan el código como volumen y publican 8000.
@@ -104,6 +126,8 @@ declarado.
 | Red `elastic_net` ausente | Levantar primero infraestructura o crear la red local según README. |
 | Swagger difiere del runtime | Usar `osiris/osiris/urls.py`, `apps/*/urls.py` y `views.py`; consultar [`../api/diferencias-contrato.md`](../api/diferencias-contrato.md). |
 | Vista previa 503/504 | Comprobar ejecutable/usuario LibreOffice, límites y timeout por nombre de variable. |
+| Referencias responden 503 | Confirmar que `DOCUMENT_REFERENCE_KEY` sea Fernet válida y que `GESTOR_DOCUMENTAL` tenga URL admisible; no registrar valores. |
+| Proxy responde 413/429/504 | Revisar los límites, tasa, concurrencia y timeouts definidos en `settings.py`. |
 | Nginx no responde | Contrastar puerto publicado 80 con `listen 8080`. |
 
 ## Recuperación

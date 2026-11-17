@@ -9,10 +9,13 @@
 ## Límites de responsabilidad
 - **CRUD (este repo)**: API de dominio y persistencia/indexación.
 - **observatorios_cliente**: consumo UI.
-- **Gestor Documental**: almacenamiento binario consumido directamente por cliente.
+- **Gestor Documental**: almacenamiento binario; cliente lo consume para
+  carga/reemplazo/eliminación y CRUD para la consulta activa del visor.
 - **observatorios_mid**: dependencia legada para un flujo `datosArchivo` no verificado.
 
 ## Integraciones críticas
 1. Cliente -> CRUD (`api/v1/*`).
-2. Cliente -> Gestor Documental y cliente -> CRUD (`campos/datos/*`).
-3. MID -> CRUD (`datosArchivo/*`) como integración legada.
+2. Cliente -> Gestor Documental para mutaciones y cliente -> CRUD
+   (`campos/datos/*`, `campos/documentos/*`).
+3. CRUD -> Gestor Documental para el GET validado de visualización.
+4. MID -> CRUD (`datosArchivo/*`) como integración legada.

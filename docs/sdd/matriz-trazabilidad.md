@@ -20,6 +20,8 @@ documentales estables para localizar evidencia y pruebas.
 | REQ-ASIS-CRUD-010 | Gestionar dashboards | BR-010 dashboard deriva índice de gráficos; AC-010 filtra por observatorio | `/dashboards/*` | `apps/dashboards/views.py` | No identificada | [VERIFICADO] |
 | REQ-ASIS-CRUD-011 | Configurar y construir gráficos | BR-011 configuración depende de tipo; AC-011 catálogo expone tipos | `/graficos/*`, `/constructor_graficos/*` | `apps/dashboards/views.py`, `apps/graficos/views.py` | No identificada | [INFERIDO] ejecución parcial rota |
 | REQ-ASIS-CRUD-012 | Cargar datos heredados | BR-012 pretende `FORM`, CSV o JSON; AC-012 no reproducido | `/datos/*`, `/datosArchivo/*` | `apps/datos/views.py` | No identificada | [INFERIDO] no operativo |
+| REQ-ASIS-CRUD-013 | Emitir referencia documental | BR-013 valida cadena ES activa y exactamente una coincidencia en `hash`; AC-013 éxito retorna `{referencia}` | POST `/campos/documentos/referencias/` | `apps/campos/views.py`; `documentos.py` | `ReferenciaDocumentoTests` | [VERIFICADO] unitariamente; Bearer solo sintáctico |
+| REQ-ASIS-CRUD-014 | Transmitir documento validado | BR-014 descifra con TTL, revalida y consulta el Gestor fijo; AC-014 solo inicia 200 después del spool completo | GET `/campos/documentos/{referencia}/` | `apps/campos/views.py`; `documentos.py` | `ReferenciaDocumentoTests` | [VERIFICADO] unitariamente; sin E2E |
 
 ## Trazabilidad cruzada
 
@@ -28,11 +30,13 @@ documentales estables para localizar evidencia y pruebas.
 | Cliente a CRUD | REQ-001 a REQ-011 | Servicios y componentes Vue | [`matriz_interacciones.md`](matriz_interacciones.md) |
 | Cliente a CRUD, tipo Enlace | `PROY-TOBE-007` / cliente `PROY-TOBE-008` | `Tablero.vue` | `apps/campos/utils.py`; `src/utils/enlaces.js` |
 | Cliente a Gestor y luego CRUD | REQ-007 | `Tablero.vue` | Repositorio cliente, `src/service/gestorDocumentalService.js` |
+| Cliente a CRUD para visualización validada | REQ-013 y REQ-014 / cliente `PROY-TOBE-009` | `Tablero.vue`, `DocumentoVisor.vue` | CRUD `PROY-TOBE-008`; `src/service/campos.service.js` |
+| CRUD a Gestor para contenido | REQ-014 | `ContenidoDocumentoView` | Bearer reenviado; permisos efectivos en Gestor |
 | MID a `datosArchivo` | REQ-012 | `observatorios_mid` | `services/observatorios_service.py`; estado legado |
 
 ## Vacíos
 
-- [VERIFICADO] REQ-008, parte de REQ-009 y los casos Enlace de REQ-006/007 tienen pruebas identificadas.
+- [VERIFICADO] REQ-008, REQ-013/014, parte de REQ-009 y los casos Enlace de REQ-006/007 tienen pruebas identificadas.
 - [NO VERIFICADO] No hay cobertura, rendimiento, disponibilidad o límites
   institucionales medidos.
 - [PROPUESTA] Una evolución debe crear IDs TO-BE nuevos, enlazar AC con pruebas y

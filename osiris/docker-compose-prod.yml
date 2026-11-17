@@ -13,7 +13,9 @@ services:
       - .env
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             gunicorn --worker-class gthread --workers 2 --threads 4
+             --timeout 240 --graceful-timeout 20
+             --bind 0.0.0.0:8000 osiris.wsgi:application"
     networks:
       - backend
 
