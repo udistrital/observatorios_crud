@@ -30,7 +30,7 @@ RUN apt-get update && \
 COPY . /app/
 
 CMD ["sh", "-c", "python manage.py migrate && \
-    gunicorn --workers 2 --timeout 40 --graceful-timeout 10 --bind 0.0.0.0:8000 osiris.wsgi:application"]
+    gunicorn --worker-class gthread --workers 2 --threads 4 --timeout 240 --graceful-timeout 20 --bind 0.0.0.0:8000 osiris.wsgi:application"]
 
 
 

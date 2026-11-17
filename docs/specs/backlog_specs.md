@@ -9,6 +9,7 @@
 | PROY-TOBE-005 | Endurecer operación local: validación previa/creación de `elastic_net` en `run_crud.sh` y checklist de conectividad Elastic | Medio | Medio | S | `run_crud.sh`, `osiris/docker-compose.yml` | `README.md` sección troubleshooting |
 | PROY-TOBE-006 | Correlation-id y trazabilidad distribuida para flujos con MID (`datosArchivo`) | Alto | Medio | S | `observatorios_mid`, `osiris/apps/datos/*`, capa de logging/middleware | `docs/sdd/matriz_interacciones.md`, `docs/sdd/correspondencia_tobe_crud_mid.md` |
 | PROY-TOBE-007 | Tipo semántico Enlace para campos de estructuras Tabla | Alto | Medio | S | `observatorios_cliente`, `apps/campos/*`, `apps/estructuras/serializers.py` | `docs/specs/PROY-ASIS-003_campos_y_registros.md` |
+| PROY-TOBE-008 | [IMPLEMENTADO] Referencia cifrada y validación Elasticsearch para visualizar documentos | Alto | Alto residual | M | `observatorios_cliente`, Gestor Documental, `apps/campos/*` | `docs/specs/PROY-ASIS-003_campos_y_registros.md`, `docs/sdd/matriz_interacciones.md`; sin E2E |
 
 ## Nota
 - Convención vigente de requerimientos nuevos: `PROY-TOBE-XXX`.

@@ -4,7 +4,7 @@
 
 `observatorios_crud` expone la API REST del dominio Observatorios. Administra procesos, factores, caracteristicas, aspectos, estructuras de evidencia, campos, registros, observatorios y configuraciones de graficos.
 
-Es un backend independiente del cliente. Persiste los datos funcionales principalmente en Elasticsearch. SQLite existe para las aplicaciones internas de Django, no para los documentos de dominio. En el flujo documental activo, este repositorio guarda metadatos y el hash del archivo; el binario pertenece al Gestor Documental consumido por `observatorios_cliente`.
+Es un backend independiente del cliente. Persiste los datos funcionales principalmente en Elasticsearch. SQLite existe para las aplicaciones internas de Django, no para los documentos de dominio. En el flujo documental activo, este repositorio guarda metadatos y el hash del archivo; el binario pertenece al Gestor Documental. La carga, el reemplazo y la eliminacion siguen en el cliente, pero la visualizacion activa pasa por referencias cifradas y el proxy validado de este CRUD.
 
 ## Tecnologias verificadas
 
@@ -94,6 +94,8 @@ Familias principales:
 - `/api/{version}/campos/estructuras/`
 - `/api/{version}/campos/datos/`
 - `/api/{version}/campos/archivos/`
+- `/api/{version}/campos/documentos/referencias/`
+- `/api/{version}/campos/documentos/{referencia}/`
 - `/api/{version}/datosArchivo`
 - `/api/{version}/observatorios`
 
@@ -125,6 +127,8 @@ Las estructuras se almacenan en indices dinamicos con forma `atlas_estructura_<t
 - `GET|PUT|PATCH|DELETE /campos/estructuras/{estructura_id}/`: estructura y campos.
 - `GET|POST|DELETE /campos/datos/{estructura_id}/`: consulta, creacion y limpieza de registros.
 - `PUT|PATCH|DELETE /campos/datos/{estructura_id}/{registro_id}/`: actualizacion, estado y eliminacion.
+- `POST /campos/documentos/referencias/`: valida el contexto y emite una referencia Fernet `v1_` efimera.
+- `GET /campos/documentos/{referencia}/`: revalida el contexto y transmite el JSON del Gestor Documental.
 
 Los registros se guardan dentro de la lista `data` de la estructura. El identificador visible es la posicion del arreglo y puede cambiar al eliminar elementos.
 
@@ -136,6 +140,10 @@ Este repositorio no almacena el binario documental. El cliente guarda en un camp
 
 La vista previa exige sintácticamente un header `Authorization: Bearer <texto>`, pero no valida firma, identidad, expiración ni rol. Además valida extensión/MIME/firma, rechaza macros y recursos externos, limita tamaño, frecuencia y tiempo, y ejecuta LibreOffice con un usuario dedicado. Sus límites y ejecutable se configuran mediante las variables `LIBREOFFICE_*` y `DOCUMENT_PREVIEW_*` de `.env.template`.
 
+Las dos rutas de visualizacion documental tambien comprueban solo la sintaxis Bearer; no incorporan verificador JWT ni ACL por proceso. El POST valida en Elasticsearch la cadena activa proceso, factor, caracteristica, aspecto y estructura `Documental`, un unico campo activo `hash` y exactamente un registro activo coincidente. El GET descifra con TTL, repite esa validacion y consulta la URL fija HTTPS `GESTOR_DOCUMENTAL/document/{documento_id}`, reenviando el mismo Bearer. La respuesta se completa en un `SpooledTemporaryFile` antes del 200, con limite de bytes, timeout, tasa y concurrencia por proceso.
+
+La referencia cifrada oculta los IDs pero es transferible entre sesiones autenticadas durante su TTL. El Bearer reenviado sigue sujeto a los permisos del Gestor; una credencial con alcance amplio podria consultar directamente el Gestor y permanece como riesgo residual.
+
 Las rutas heredadas `/datosArchivo/...` pretenden manejar metadata, no bytes. En el codigo actual dependen de atributos antiguos de `EstructuraCamposModelo`; no las asuma operativas sin reproducir y corregir ese flujo.
 
 La carga de imagenes de observatorios en `apps/elasticsearch_utils/models.py` es otro caso de uso y no constituye almacenamiento documental.
@@ -146,8 +154,10 @@ El contrato activo es:
 
 ```text
 observatorios_cliente
-  -> Gestor Documental: carga/consulta/eliminacion del binario
-  -> observatorios_crud: estructura, campos, metadatos y hash
+  -> Gestor Documental: carga, reemplazo y eliminacion del binario
+  -> observatorios_crud: estructura, campos, metadatos, hash y visualizacion validada
+observatorios_crud
+  -> Gestor Documental: GET fijo para la visualizacion, con Bearer reenviado
   -> Elasticsearch: documento de estructura y registros embebidos
 ```
 
@@ -158,7 +168,7 @@ El cliente configura este API mediante `MAIN_BACKEND` y usa las familias `/estru
 ### Servidor Django
 
 - `SECRET_KEY`
-- `DEBUG` y `ALLOWED_HOSTS` aparecen en la plantilla, aunque el codigo actual fija `DEBUG=True` y `ALLOWED_HOSTS=["*"]`.
+- `DEBUG` se lee del entorno con valor local predeterminado `True`; `ALLOWED_HOSTS` sigue abierto en codigo.
 - `DJANGO_LOG_LEVEL`
 - `STATIC_ROOT`
 - `SECURE_SSL_REDIRECT`
@@ -185,6 +195,17 @@ El arranque falla si usuario o contrasena de Elasticsearch quedan vacios.
 - `CORS_ALLOWED_ORIGINS`
 
 Estas variables aparecen en `.env.template`, pero el comportamiento CORS actual se decide en codigo segun `PARAMETER_STORE`.
+
+### Visualizacion documental
+
+- `DOCUMENT_REFERENCE_KEY`: clave Fernet real, obligatoria para emitir/consumir referencias y sin valor predeterminado util.
+- `GESTOR_DOCUMENTAL`: URL base fija; debe usar HTTPS.
+
+La vigencia de referencias (7 dias), la prohibicion de HTTP, los timeouts y los
+limites/tasa del proxy son constantes operativas de `settings.py`; no son
+variables de entorno ni parametros SSM.
+
+Produccion usa Gunicorn `gthread`, 2 workers por 4 threads y timeout de 240 segundos. El semaforo documental es local a cada worker/proceso y se conserva hasta cerrar la respuesta; con el valor predeterminado admite hasta 2 consultas simultaneas por proceso, no un limite global compartido.
 
 Nunca escriba valores sensibles en documentacion, pruebas, logs ni commits. El archivo real `osiris/.env` y variantes locales no son documentacion.
 

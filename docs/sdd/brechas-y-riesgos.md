@@ -24,12 +24,18 @@ no se afirma cumplimiento ni auditoría de seguridad formal.
 | CRUD-R-014 | Media | [VERIFICADO] | CI publica sin ejecutar tests ni `manage.py check`. | `.drone.yml` | Cadena de entrega |
 | CRUD-R-015 | Media | [VERIFICADO] | Compose con nombre productivo usa `runserver`; puerto Nginx diverge. | Compose y Nginx | Operación |
 | CRUD-R-016 | Media | [NO VERIFICADO] | No hay procedimiento versionado de backup/restore ni objetivos RPO/RTO. | revisión documental | Recuperabilidad |
+| CRUD-R-017 | Alta | [VERIFICADO] | POST/GET documental solo comprueban sintaxis Bearer; no validan JWT ni ACL por proceso. | `DocumentoProtegidoMixin`; `ReferenciaDocumentoView`; `ContenidoDocumentoView` | OWASP API2/API5 |
+| CRUD-R-018 | Alta | [VERIFICADO] | Una referencia cifrada puede transferirse entre sesiones autenticadas durante el TTL. | `documentos.py: descifrar_referencia_documento` | OWASP API2 |
+| CRUD-R-019 | Alta | [VERIFICADO] diseño / [NO VERIFICADO] permisos | Una credencial con alcance amplio puede omitir el CRUD y consultar directamente el Gestor; el proxy reenvía el Bearer y depende de sus permisos. | `obtener_documento_gestor` | OWASP API5 |
+| CRUD-R-020 | Media | [VERIFICADO] | Tasa y semáforo del proxy son locales al proceso; el límite agregado crece con workers/réplicas. | `SEMAFORO_PROXY_DOCUMENTAL`; DRF throttle | OWASP API4 |
 
 ## Controles positivos observados
 
 - [VERIFICADO] La vista previa valida extensión, MIME, firmas, ZIP expandido,
   macros, cifrado, relaciones externas, tiempo y tamaños.
 - [VERIFICADO] Usa directorios temporales y cabeceras `no-store`/`nosniff`.
+- [VERIFICADO] El proxy fija el destino, exige HTTPS por defecto, verifica TLS, no
+  sigue redirects, limita bytes y completa el spool antes de responder 200.
 - [VERIFICADO] Las llamadas a Elasticsearch requieren credenciales no vacías.
 - [VERIFICADO] La plantilla no debe contener credenciales reales y SSM está
   soportado para ambientes remotos.
@@ -42,5 +48,7 @@ no se afirma cumplimiento ni auditoría de seguridad formal.
 - [PROPUESTA] Normalizar errores solo mediante una spec TO-BE compatible.
 - [PROPUESTA] Versionar mappings, consistencia y recuperación antes de cambios de
   datos.
+- [PROPUESTA] Incorporar verificación JWT y autorización por proceso sin presentar
+  el cifrado de referencias como sustituto.
 
 Estas propuestas no autorizan cambios de código.

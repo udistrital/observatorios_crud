@@ -2,8 +2,8 @@
 
 ## Referencia y cobertura
 
-Comparación estática del 2026-11-10 entre runtime Django, Swagger 2 en `swagger/`,
-cliente `8537cb7` y MID `92e9ca9`. El OpenAPI AS-IS registra 33 rutas y 90
+Comparación estática actualizada el 2026-11-12 entre runtime Django, Swagger 2 en
+`swagger/` y los checkouts locales de cliente/CRUD. El OpenAPI AS-IS registra 35 rutas y 92
 operaciones de dominio, más `GET /health/`. No incluye las UIs Swagger/ReDoc, sus
 representaciones JSON/YAML, variantes `.{format}`, `HEAD`, `OPTIONS` ni media.
 
@@ -21,12 +21,13 @@ representaciones JSON/YAML, variantes `.{format}`, `HEAD`, `OPTIONS` ni media.
 | DIF-010 | Media | Constructor vs gráficos persistidos | Constructor enumera cinco tipos y validación persistida admite menos. | [VERIFICADO]; decisión pendiente. |
 | DIF-011 | Media | Licencia | Swagger/dynamic info declara MIT; README declara GPL-3+. | [VERIFICADO]; OpenAPI referencia README, decisión legal pendiente. |
 | DIF-012 | Media | Cliente activo vs docs antiguas | Flujo activo usa Gestor+CRUD; docs antiguas presentan MID. | [VERIFICADO]; matrices canónicas distinguen legado. |
+| DIF-013 | Alta | Runtime vs Swagger 2 | Las rutas `/campos/documentos/referencias/` y `/campos/documentos/{referencia}/` no aparecen en el snapshot histórico. | [VERIFICADO]; incluidas con Bearer sintáctico, cuerpos y estados reales. |
 
 ## Validación
 
-- [VERIFICADO] PyYAML cargó el documento sin error y el control estructural contó
-  34 paths, 91 operaciones totales, 33 paths/90 operaciones de dominio, 91
-  `operationId` únicos y 367 referencias internas sin destinos rotos.
+- [VERIFICADO] Un parser YAML cargó el documento sin error y el control estructural
+  contó 36 paths, 93 operaciones totales, 35 paths/92 operaciones de dominio, 93
+  `operationId` únicos y 391 referencias internas sin destinos rotos.
 - [NO VERIFICADO] No hay en el entorno un validador OpenAPI 3.1.2 (`redocly`,
   `spectral`, `swagger-cli`, `openapi-spec-validator` o `prance`).
 - [NO VERIFICADO] No se inició Django para comparar el esquema drf-yasg dinámico.

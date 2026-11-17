@@ -2,8 +2,8 @@
 
 ## Referencia y alcance
 
-Documento inspeccionado contra `observatorios_crud@3de996b166430ca180ab372fbabf69f4c12b419c`
-el 2026-11-10. No declara conformidad con ISO/IEC/IEEE 42010 ni con C4; usa
+Documento inspeccionado contra `f51497c` y la implementación local de
+`PROY-TOBE-008` el 2026-11-12. No declara conformidad con ISO/IEC/IEEE 42010 ni con C4; usa
 sus conceptos de interesados, preocupaciones y vistas para organizar evidencia.
 
 ## Interesados y preocupaciones
@@ -22,14 +22,16 @@ sus conceptos de interesados, preocupaciones y vistas para organizar evidencia.
 ```mermaid
 flowchart LR
     U[Usuario] -->|HTTPS mediante navegador| C[observatorios_cliente]
-    C -->|REST JSON y multipart| B[observatorios_crud]
-    C -->|Carga consulta y eliminación| G[Gestor Documental]
+    C -->|REST JSON, referencias y contenido| B[observatorios_crud]
+    C -->|Carga reemplazo y eliminación| G[Gestor Documental]
+    B -->|GET fijo con Bearer reenviado| G
     B -->|Consultas e indexación| E[(Elasticsearch)]
     B -->|Parámetros remotos opcionales| S[AWS SSM]
     M[observatorios_mid legado] -.->|datosArchivo no verificado| B
 ```
 
-- [VERIFICADO] El cliente consume directamente CRUD y Gestor Documental.
+- [VERIFICADO] El cliente consume CRUD para dominio y visualización; consume
+  directamente el Gestor solo para carga, reemplazo y eliminación.
 - [VERIFICADO] MID concatena `datosArchivo/...` en
   `observatorios_mid/services/observatorios_service.py`.
 - [INFERIDO] La integración MID no es operativa con el modelo actual del CRUD.
@@ -46,11 +48,15 @@ flowchart TB
       SER[Serializers y validación manual]
       ESU[Modelos descriptor y utilidades Elasticsearch]
       PRE[Conversor temporal LibreOffice]
+      DOC[Referencia Fernet y proxy documental]
       URL --> DRF --> SER --> ESU
       DRF --> PRE
+      DRF --> DOC
     end
     ESU --> ES[(Elasticsearch)]
     PRE --> TMP[(Directorio temporal)]
+    DOC --> TMP
+    DOC --> GD[Gestor Documental]
     CFG[Entorno o AWS SSM] --> API
 ```
 
@@ -61,6 +67,7 @@ flowchart TB
 | Serializers | Forma y validación parcial de entradas | `osiris/apps/*/serializers.py` |
 | Modelos/utilidades ES | Mappings, consultas e indexación | `osiris/apps/elasticsearch_utils/`; `osiris/apps/*/models.py` |
 | Conversión Office | Valida Word/Excel, ejecuta LibreOffice y retorna PDF temporal | `osiris/apps/campos/views.py: VistaPreviaDocumentoView` |
+| Proxy documental | Emite/descifra referencias, revalida ES, limita y transmite JSON del Gestor | `osiris/apps/campos/documentos.py`; `ReferenciaDocumentoView`; `ContenidoDocumentoView` |
 | SQLite | Soporte interno de Django | `osiris/osiris/settings.py: DATABASES` |
 
 ## Límites de confianza
@@ -73,6 +80,9 @@ flowchart TB
    conversión y los temporales se eliminan; el semáforo es local al proceso.
 4. Entorno a aplicación: [VERIFICADO] configuración local o AWS SSM; no se
    documentan valores secretos.
+5. API a Gestor: [VERIFICADO] destino fijo, HTTPS por defecto, TLS verificado y
+   Bearer reenviado. El CRUD solo valida su sintaxis; no valida JWT ni ACL por
+   proceso, y el Gestor conserva la decisión de autorización.
 
 ## Secuencia de jerarquía
 
@@ -117,6 +127,35 @@ sequenceDiagram
 [VERIFICADO] El CRUD no guarda el binario en este flujo. [INFERIDO] si la segunda
 escritura falla, el archivo puede quedar huérfano.
 
+## Secuencia de visualización activa
+
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant C as observatorios_cliente
+    participant B as observatorios_crud
+    participant E as Elasticsearch
+    participant G as Gestor Documental
+    U->>C: abrir documento
+    C->>B: POST campos/documentos/referencias/ + contexto + Bearer
+    B->>E: validar cadena activa y coincidencia hash única
+    E-->>B: asociación vigente
+    B-->>C: 200 {referencia: v1_...}
+    C->>C: abrir /documentos/{referencia}
+    C->>B: GET campos/documentos/{referencia}/ + Bearer
+    B->>B: descifrar con TTL
+    B->>E: revalidar cadena y asociación
+    B->>G: GET document/{documento_id} + Bearer
+    G-->>B: JSON
+    B->>B: validar y completar spool temporal
+    B-->>C: 200 JSON, no-store/no-cache/nosniff
+```
+
+[VERIFICADO] No hay consulta directa del visor activo al Gestor ni intervención
+del MID. El POST y el GET solo comprueban sintaxis Bearer. La referencia es
+transferible entre sesiones autenticadas durante el TTL y una credencial de
+alcance amplio conserva acceso directo al Gestor como riesgo residual.
+
 ## Decisiones observadas y limitaciones
 
 - [VERIFICADO] Datos de dominio en Elasticsearch, con índices fijos y dinámicos.
@@ -125,6 +164,8 @@ escritura falla, el archivo puede quedar huérfano.
 - [VERIFICADO] Rutas versionadas mediante segmento libre, no mediante routers por
   versión.
 - [VERIFICADO] Errores y borrados heterogéneos por capacidad.
+- [VERIFICADO] El proxy usa un `SpooledTemporaryFile`; después del umbral de
+  memoria usa disco temporal y resuelve límites/errores upstream antes del 200.
 - [NO VERIFICADO] No existen ADR que demuestren por qué se eligieron estas
   decisiones; no deben reinterpretarse como recomendaciones TO-BE.
 

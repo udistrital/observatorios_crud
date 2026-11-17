@@ -2,7 +2,7 @@
 
 ## Referencia
 
-[VERIFICADO] Inspección estática de `observatorios_crud@3de996b` el 2026-11-10.
+[VERIFICADO] Inspección estática de `f51497c` y `PROY-TOBE-008` el 2026-11-12.
 No se consultaron mappings ni documentos de ambientes reales.
 
 ## Persistencia
@@ -82,6 +82,15 @@ Registro observado:
   máximo 2048 caracteres.
 - [VERIFICADO] `migrar_data`, `eliminar_data_campos` y validaciones manuales no
   forman un contrato uniforme entre todas las vistas.
+- [VERIFICADO] Para emitir o consumir una referencia documental, el CRUD exige una
+  estructura activa `Documental`, un único campo activo llamado `hash` y
+  exactamente un registro activo cuyo valor coincide con `documento_id`.
+- [VERIFICADO] La validación recorre documentos activos de `atlas_procesos`,
+  `atlas_factores`, `atlas_caracteristicas`, `atlas_aspectos` y el índice dinámico;
+  no depende solo de las referencias resumidas del padre.
+- [VERIFICADO] La referencia `v1_` cifra los cuatro IDs y es efímera: no se
+  persiste, no crea índice ni cambia mappings. El hash original permanece en
+  `data[]` para carga, edición y eliminación existentes.
 
 ## Tipos admitidos
 
@@ -119,5 +128,8 @@ extremo a extremo.
 - [NO VERIFICADO] Políticas de concurrencia, `seq_no`, locks o prevención de
   actualizaciones perdidas.
 - [NO VERIFICADO] Integridad periódica entre referencias padre e hijo.
+- [VERIFICADO] La validación documental es de asociación, no una ACL: el CRUD solo
+  comprueba la sintaxis Bearer y el Gestor conserva la decisión sobre el Bearer
+  reenviado.
 - [PROPUESTA] Cualquier cambio de modelo debe especificar compatibilidad, migración,
   reversión y tratamiento de datos existentes antes de modificar código.
