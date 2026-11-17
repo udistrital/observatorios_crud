@@ -4,7 +4,7 @@
 
 `observatorios_crud` es la API REST del sistema Observatorios. Expone operaciones para procesos, factores, caracteristicas, aspectos, estructuras de evidencia, campos, registros, observatorios y graficos. La informacion funcional se indexa principalmente en Elasticsearch.
 
-El API es consumido por `observatorios_cliente`. En el flujo documental vigente, el CRUD conserva metadatos y el hash que identifica al archivo; los binarios se almacenan y consultan a traves de un Gestor Documental externo.
+El API es consumido por `observatorios_cliente`. En el flujo documental vigente, el CRUD conserva metadatos y el hash que identifica al archivo; los binarios se almacenan en un Gestor Documental externo. La visualizacion usa una referencia cifrada efimera: el CRUD valida la asociacion en Elasticsearch, consulta el Gestor con el Bearer recibido y transmite su JSON al visor.
 
 La guia tecnica para agentes de codigo esta en `AGENTS.md`; la documentacion SDD se encuentra en `docs/`.
 
@@ -58,7 +58,7 @@ Complete valores locales sin subir el archivo real al repositorio. Las credencia
 - `STATIC_ROOT`
 - `SECURE_SSL_REDIRECT`
 
-`DEBUG` y `ALLOWED_HOSTS` estan presentes en la plantilla, pero el codigo actual fija `DEBUG=True` y `ALLOWED_HOSTS=["*"]`.
+`DEBUG` se lee del entorno y usa `True` como valor local predeterminado. `ALLOWED_HOSTS` sigue fijado como `['*']`.
 
 ### Elasticsearch
 
@@ -84,6 +84,17 @@ Sin `PARAMETER_STORE`, las credenciales se leen del entorno local. Con un valor 
 - `CORS_ALLOWED_ORIGINS`
 
 Estas variables figuran en la plantilla, pero la configuracion efectiva actual distingue local/remoto mediante `PARAMETER_STORE`.
+
+### Visualizacion documental
+
+- `DOCUMENT_REFERENCE_KEY`: clave Fernet real y sin valor predeterminado; es obligatoria para las referencias `v1_`.
+- `GESTOR_DOCUMENTAL`: URL base fija del Gestor; HTTPS es obligatorio salvo uso local explicito.
+
+La vigencia de la referencia (7 dias), los timeouts, los limites de bytes/spool,
+la concurrencia, la tasa y la prohibicion de HTTP son constantes operativas de
+`osiris/osiris/settings.py`; no se leen desde entorno ni SSM.
+
+El CRUD solo comprueba la forma `Bearer <texto>` en estas rutas; no valida JWT ni aplica ACL por proceso. La autorizacion efectiva del contenido depende de los permisos que el Gestor aplique al Bearer reenviado.
 
 No incluya valores sensibles en documentacion ni commits.
 
@@ -111,7 +122,11 @@ Complete en `osiris/.env` la conexion a Elasticsearch y las variables necesarias
 ./run_crud.sh
 ```
 
-Si `osiris/.env` no existe, el script lo crea desde la plantilla. Luego construye y levanta `osiris_back`, ejecuta migraciones y arranca Django en:
+Si `osiris/.env` no existe, el script lo crea desde la plantilla. En ejecución
+local sin `PARAMETER_STORE`, también genera y persiste una clave Fernet si
+`DOCUMENT_REFERENCE_KEY` está vacía o no tiene el formato requerido; nunca la
+imprime. Con SSM configurado exige una clave administrada válida. Luego construye
+y levanta `osiris_back`, ejecuta migraciones y arranca Django en:
 
 ```text
 http://localhost:8000
@@ -190,8 +205,10 @@ El cliente usa:
 - `/campos/estructuras/{estructura_id}/` para su definicion de campos.
 - `/campos/datos/{estructura_id}/` para metadatos y hash.
 - `/campos/datos/{estructura_id}/{registro_id}/` para actualizar o eliminar un registro.
+- `POST /campos/documentos/referencias/` para validar contexto y emitir una referencia `v1_`.
+- `GET /campos/documentos/{referencia}/` para revalidar y transmitir el JSON del Gestor.
 
-El original no se almacena en este API. `observatorios_cliente` lo envia al Gestor Documental y registra aqui el hash retornado. Para visualizar Word y Excel, `POST /campos/archivos/vista-previa/` recibe una copia temporal, valida el formato y retorna un PDF `inline`; los temporales se eliminan al terminar.
+El original no se almacena en este API. `observatorios_cliente` lo envia al Gestor Documental y registra aqui el hash retornado. El visor activo usa las dos rutas `/campos/documentos/...`; el CRUD valida la cadena Elasticsearch, reenvia el Bearer al GET fijo del Gestor y completa un spool temporal antes del 200. `POST /campos/archivos/vista-previa/` sigue recibiendo una copia temporal de Word/Excel, valida el formato y retorna un PDF `inline`; los temporales se eliminan al terminar.
 
 El `Dockerfile` instala LibreOffice Writer/Calc. En ejecucion directa debe existir `/usr/bin/libreoffice`; `.env.template` permite configurar ejecutable, usuario, limites, timeout y tasa mediante `LIBREOFFICE_*` y `DOCUMENT_PREVIEW_*`.
 
@@ -201,7 +218,7 @@ La ruta `/campos/archivos/...` existe por compatibilidad, pero se comporta exact
 
 `observatorios_cliente` configura la URL de este API mediante `MAIN_BACKEND`. En local espera `http://localhost:8000/api/v1`.
 
-El frontend gestiona el binario con otro servicio y envia al CRUD metadatos mas un campo reservado `hash`. Cualquier cambio en nombres de campos, estructura de respuesta, paginacion o codigos HTTP debe comprobarse contra el cliente antes de publicarse.
+El frontend carga, reemplaza y elimina el binario con otro servicio, y envia al CRUD metadatos mas un campo reservado `hash`. La visualizacion pasa por el CRUD y no agrega autenticacion propia: este API solo valida sintaxis Bearer y el Gestor decide sobre la credencial reenviada. Cualquier cambio en nombres de campos, estructura de respuesta, paginacion o codigos HTTP debe comprobarse contra el cliente antes de publicarse.
 
 ## Pruebas y verificaciones
 

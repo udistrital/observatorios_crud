@@ -20,6 +20,7 @@ import logging
 from osiris.aws_ssm import get_ssm_parameter
 from urllib.parse import quote
 from dotenv import load_dotenv
+from cryptography.fernet import Fernet
 
 load_dotenv()
 
@@ -54,7 +55,7 @@ LOGGING = {
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = ["*",]
 #ALLOWED_HOSTS = [
 #    "pruebasapi.intranetoas.udistrital.edu.co",
@@ -275,6 +276,35 @@ DOCUMENT_PREVIEW_TIMEOUT_SECONDS = int(os.getenv(
     "20"
 ))
 
+GESTOR_DOCUMENTAL = os.getenv("GESTOR_DOCUMENTAL", "").strip().rstrip("/")
+DOCUMENT_REFERENCE_KEY = os.getenv(
+    "DOCUMENT_REFERENCE_KEY",
+    "",
+)
+
+GESTOR_DOCUMENTAL_ALLOW_HTTP = False
+GESTOR_DOCUMENTAL_CONNECT_TIMEOUT_SECONDS = 5
+GESTOR_DOCUMENTAL_READ_TIMEOUT_SECONDS = 30
+GESTOR_DOCUMENTAL_TOTAL_TIMEOUT_SECONDS = 90
+DOCUMENT_PROXY_MAX_BYTES = 157286400
+DOCUMENT_PROXY_SPOOL_MAX_BYTES = 1048576
+DOCUMENT_PROXY_MAX_CONCURRENT = 2
+DOCUMENT_PROXY_RATE = "30/min"
+DOCUMENT_REFERENCE_TTL_SECONDS = 604800  # 7 días
+
+if USE_SSM or not DEBUG:
+    try:
+        Fernet(DOCUMENT_REFERENCE_KEY.encode("ascii"))
+    except (AttributeError, TypeError, UnicodeError, ValueError):
+        raise RuntimeError(
+            "Missing or invalid DOCUMENT_REFERENCE_KEY for current environment"
+        )
+
+if GESTOR_DOCUMENTAL_ALLOW_HTTP and (USE_SSM or not DEBUG):
+    raise RuntimeError(
+        "GESTOR_DOCUMENTAL_ALLOW_HTTP is only valid for local debug"
+    )
+
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -282,6 +312,7 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'apps.utils.views.custom_exception_handler',
     'DEFAULT_THROTTLE_RATES': {
         'document_preview': os.getenv("DOCUMENT_PREVIEW_RATE", "30/min"),
+        'document_proxy': DOCUMENT_PROXY_RATE,
     },
 }
 

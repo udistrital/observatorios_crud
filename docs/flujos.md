@@ -33,3 +33,19 @@ Persistir metadatos y hash enviados directamente por `observatorios_cliente`.
 ### Brechas
 - `datosArchivo` permanece como ruta heredada y [INFERIDO] no operativa.
 - El contrato de errores sigue siendo heterogéneo.
+
+## Flujo activo: visualización documental validada
+
+1. El tablero envía proceso, factor, estructura y documento a
+   `/campos/documentos/referencias/` con Bearer.
+2. CRUD valida la cadena activa y una única coincidencia `hash`, y retorna una
+   referencia Fernet `v1_` efímera.
+3. El visor abre `/documentos/{referencia}` y consulta
+   `/campos/documentos/{referencia}/`.
+4. CRUD descifra con TTL, revalida Elasticsearch y consulta el GET fijo del Gestor
+   con el Bearer reenviado.
+5. CRUD completa el spool temporal, resuelve errores y solo entonces retorna 200.
+
+El Bearer se comprueba solo sintácticamente; no hay JWT ni ACL por proceso. La
+referencia es transferible durante el TTL y el Gestor decide los permisos efectivos
+del Bearer. El MID y los componentes legados no participan en este flujo.

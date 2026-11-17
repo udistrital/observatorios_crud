@@ -2,11 +2,11 @@ openapi: 3.1.2
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Observatorios CRUD - contrato AS-IS
-  version: 3de996b
+  version: f51497c+PROY-TOBE-008
   description: |
-    Contrato reconstruido por inspección estática del checkout local
-    `observatorios_crud@3de996b166430ca180ab372fbabf69f4c12b419c` el
-    2026-11-10. Contiene 33 rutas y 90 operaciones de dominio, más salud.
+    Contrato reconstruido por inspección estática del checkout local con la
+    implementación de PROY-TOBE-008 el 2026-11-12. Contiene 35 rutas y 92
+    operaciones de dominio, más salud. No se realizó verificación end-to-end.
     No declara autenticación global porque no está configurada en DRF. Las
     extensiones `x-verification`, `x-source` y `x-runtime-status` distinguen
     evidencia y limitaciones. No es el Swagger 2 histórico de `swagger/`.
@@ -533,6 +533,78 @@ paths:
       x-verification: VERIFICADO
       responses: {'200': {$ref: '#/components/responses/Object200'}, '400': {$ref: '#/components/responses/Error400'}, '404': {$ref: '#/components/responses/Error404'}}
 
+  /api/{version}/campos/documentos/referencias/:
+    parameters: [{$ref: '#/components/parameters/Version'}]
+    post:
+      tags: [Campos]
+      operationId: createReferenciaDocumento
+      summary: Emitir una referencia cifrada para un documento asociado
+      description: |
+        Exige únicamente la sintaxis `Authorization: Bearer <texto>`; el CRUD
+        no valida firma, identidad, expiración, rol ni ACL por proceso. Comprueba
+        en Elasticsearch la cadena activa de proceso, factor, característica,
+        aspecto y estructura Documental, un único campo activo `hash` y exactamente un
+        registro activo cuyo valor coincide con `documento_id`.
+      x-source: osiris/apps/campos/views.py:ReferenciaDocumentoView.post
+      x-verification: VERIFICADO
+      parameters:
+        - {$ref: '#/components/parameters/AuthorizationDocumentSyntax'}
+      requestBody: {$ref: '#/components/requestBodies/DocumentoReferencia'}
+      responses:
+        '200':
+          description: Referencia Fernet opaca, URL-safe, con prefijo v1_
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DocumentoReferenciaResponse'}
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '503': {$ref: '#/components/responses/Error503'}
+
+  /api/{version}/campos/documentos/{referencia}/:
+    parameters:
+      - {$ref: '#/components/parameters/Version'}
+      - {$ref: '#/components/parameters/ReferenciaDocumento'}
+    get:
+      tags: [Campos]
+      operationId: getContenidoDocumento
+      summary: Recuperar mediante CRUD un documento con referencia cifrada
+      description: |
+        Descifra una referencia `v1_` con TTL, repite la validación completa en
+        Elasticsearch y consulta únicamente la URL fija
+        `GESTOR_DOCUMENTAL/document/{documento_id}`. Reenvía sin interpretar el
+        Bearer recibido, no sigue redirects y solo admite una respuesta JSON del
+        Gestor. La referencia es transferible durante su TTL y no sustituye la
+        autorización del Gestor sobre el Bearer reenviado.
+
+        La respuesta upstream se lee por completo en un archivo temporal con
+        spool a disco después del umbral configurado. Los límites y errores se
+        resuelven antes de iniciar la respuesta 200 al cliente; el identificador
+        del Gestor debe ser un UUID canónico y la lectura aplica un plazo total.
+      x-source: osiris/apps/campos/views.py:ContenidoDocumentoView.get
+      x-verification: VERIFICADO
+      parameters:
+        - {$ref: '#/components/parameters/AuthorizationDocumentSyntax'}
+      responses:
+        '200':
+          description: JSON del Gestor Documental transmitido sin cambiar su forma
+          headers:
+            Cache-Control: {schema: {type: string, const: 'private, no-store'}}
+            Pragma: {schema: {type: string, const: no-cache}}
+            X-Content-Type-Options: {schema: {type: string, const: nosniff}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DocumentoGestorResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '413': {$ref: '#/components/responses/Error413'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
+        '504': {$ref: '#/components/responses/Error504'}
+
   /api/{version}/campos/archivos/vista-previa/:
     parameters: [{$ref: '#/components/parameters/Version'}]
     post:
@@ -995,6 +1067,18 @@ components:
       required: true
       description: Solo se exige la forma Bearer con texto; no se valida el token.
       schema: {type: string, pattern: '^Bearer .+$'}
+    AuthorizationDocumentSyntax:
+      name: Authorization
+      in: header
+      required: true
+      description: Forma exacta Bearer y un token sin espacios; no valida el token ni autoriza por proceso.
+      schema: {type: string, pattern: '^Bearer [^\s]+$'}
+    ReferenciaDocumento:
+      name: referencia
+      in: path
+      required: true
+      description: Referencia Fernet opaca emitida por el POST; TTL de 604800 segundos (7 días).
+      schema: {type: string, pattern: '^v1_[A-Za-z0-9_-]+$', maxLength: 8192}
 
   requestBodies:
     GenericObject:
@@ -1048,6 +1132,11 @@ components:
           schema:
             type: object
             properties: {activo: {type: boolean}}
+    DocumentoReferencia:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/DocumentoReferenciaRequest'}
     DashboardCreate:
       required: true
       content:
@@ -1091,7 +1180,10 @@ components:
       description: Solicitud o validación inválida; forma no uniforme
       content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
     Error401:
-      description: Header Bearer ausente o sin texto
+      description: Header Bearer ausente o con sintaxis inválida
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error403:
+      description: Referencia inválida/vencida o autorización rechazada por el Gestor
       content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
     Error404:
       description: Recurso no encontrado; forma no uniforme
@@ -1109,16 +1201,19 @@ components:
       description: Conversión o PDF resultante inválido
       content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
     Error429:
-      description: Tasa excedida o conversor ocupado
+      description: Tasa excedida o capacidad local ocupada
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
+    Error502:
+      description: Respuesta inválida o error no específico del Gestor Documental
       content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
     Error500:
       description: Error no controlado o de Elasticsearch; forma no uniforme
       content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
     Error503:
-      description: LibreOffice o usuario de conversión no disponible
+      description: Configuración o dependencia requerida no disponible
       content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
     Error504:
-      description: Timeout de conversión
+      description: Timeout de conversión o del Gestor Documental
       content: {application/json: {schema: {$ref: '#/components/schemas/ErrorVariant'}}}
 
   schemas:
@@ -1239,6 +1334,29 @@ components:
       required: [valores]
       properties:
         valores: {type: object, additionalProperties: true}
+    DocumentoReferenciaRequest:
+      type: object
+      additionalProperties: false
+      required: [proceso_id, factor_id, estructura_id, documento_id]
+      properties:
+        proceso_id: {type: string, minLength: 1, maxLength: 255}
+        factor_id: {type: string, minLength: 1, maxLength: 255}
+        estructura_id:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: '^atlas_estructura_documental_[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        documento_id: {type: string, format: uuid, minLength: 36, maxLength: 36, pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'}
+    DocumentoReferenciaResponse:
+      type: object
+      additionalProperties: false
+      required: [referencia]
+      properties:
+        referencia: {type: string, pattern: '^v1_[A-Za-z0-9_-]+$'}
+    DocumentoGestorResponse:
+      type: object
+      additionalProperties: true
+      description: JSON del Gestor, normalmente con `file` base64 y metadatos en `file:content`.
     Paginated:
       type: object
       required: [count, page, page_size, results]

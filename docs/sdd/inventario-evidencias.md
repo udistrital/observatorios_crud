@@ -6,8 +6,8 @@
 |---|---|
 | Repositorio | `observatorios_crud` |
 | Rama local | `feature/campo_orden` |
-| Commit | `3de996b166430ca180ab372fbabf69f4c12b419c` |
-| Fecha | 2026-11-10 |
+| Base | `f51497c` + implementación local de `PROY-TOBE-008` |
+| Fecha | 2026-11-12 |
 | Método | Revisión estática del checkout local; sin peticiones externas ni escrituras en Elasticsearch |
 
 Las etiquetas `[VERIFICADO]`, `[INFERIDO]`, `[NO VERIFICADO]`, `[PROPUESTA]` y
@@ -16,7 +16,7 @@ cambios documentales sin commit se describen en el informe de entrega.
 
 ## Cobertura
 
-- [VERIFICADO] 33 plantillas de ruta de dominio y 90 combinaciones
+- [VERIFICADO] 35 plantillas de ruta de dominio y 92 combinaciones
   `método + ruta` explícitas bajo `/api/{version}/`.
 - [VERIFICADO] 1 operación de salud y 4 rutas de documentación Swagger/ReDoc.
 - [VERIFICADO] El segmento `{version}` acepta cualquier cadena; no existe una lista
@@ -36,7 +36,7 @@ cambios documentales sin commit se describen en el informe de entrega.
 | CRUD-MOD-004 | Características | 2 | 6 | `osiris/apps/caracteristicas/{urls.py,views.py,serializers.py}` | `caracteristicas.service.js` | [VERIFICADO] |
 | CRUD-MOD-005 | Aspectos | 2 | 6 | `osiris/apps/aspectos/{urls.py,views.py,serializers.py}` | `aspectos.service.js`, `AspectosSection.vue` | [VERIFICADO] |
 | CRUD-MOD-006 | Estructuras de evidencia | 2 | 6 | `osiris/apps/estructuras/{urls.py,views.py,serializers.py}` | `estructuras-evidencias.service.js` | [VERIFICADO] |
-| CRUD-MOD-007 | Campos, registros, alias de archivos y vista previa | 8 | 28 | `osiris/apps/campos/{urls.py,views.py,serializers.py,utils.py}` | `campos.service.js`, `Tablero.vue`, `DocumentoVisor.vue` | [VERIFICADO] con anomalías descritas abajo |
+| CRUD-MOD-007 | Campos, registros, alias, vista previa y proxy documental | 10 | 30 | `osiris/apps/campos/{urls.py,views.py,serializers.py,utils.py,documentos.py}` | `campos.service.js`, `Tablero.vue`, `DocumentoVisor.vue` | [VERIFICADO] estáticamente y con pruebas unitarias |
 | CRUD-MOD-008 | Datos multiformato y `datosArchivo` heredados | 4 | 12 | `osiris/apps/datos/{urls.py,views.py}` | MID y componentes `archivos/` legados | [INFERIDO] no operativo |
 | CRUD-MOD-009 | Dashboards y gráficos persistidos | 5 | 11 | `osiris/apps/dashboards/{urls.py,views.py}` | Componentes `panel/` | [VERIFICADO] salvo construcción de gráfico |
 | CRUD-MOD-010 | Constructor de gráficos | 4 | 4 | `osiris/apps/graficos/{urls.py,views.py}` | Componentes `panel/graficas/` | [VERIFICADO] rutas; [INFERIDO] ejecución parcial rota |
@@ -53,12 +53,15 @@ cambios documentales sin commit se describen en el informe de entrega.
 | CRUD-EV-006 | Los IDs de registros embebidos son posiciones del arreglo `data`. | `osiris/apps/campos/views.py: DatosEstructuraDocumentoView` | Eliminar una posición renumera los registros posteriores. |
 | CRUD-EV-007 | Las relaciones padre-hijo se actualizan en operaciones Elasticsearch separadas. | `views.py` de factores, características, aspectos y estructuras | Puede quedar estado parcial; no hay transacción distribuida. |
 | CRUD-EV-008 | Los errores no tienen una única forma. | `osiris/apps/utils/views.py: custom_exception_handler`; respuestas manuales en `apps/*/views.py` | El cliente debe tratar `detail`, `error`, `detalle`, `message` y fallos sin cuerpo uniforme. |
+| CRUD-EV-009 | Las rutas documentales solo validan la sintaxis Bearer; la referencia Fernet no implementa identidad ni ACL. | `DocumentoProtegidoMixin`; `documentos.py` | La referencia es transferible durante TTL y los permisos efectivos dependen del Gestor. |
+| CRUD-EV-010 | El proxy usa destino HTTPS fijo, sin redirects, límite, timeouts, spool y concurrencia local. | `obtener_documento_gestor`; `almacenar_respuesta_gestor` | Reduce SSRF y respuestas parciales, pero una credencial amplia conserva acceso directo al Gestor. |
 
 ## Pruebas encontradas
 
 | Área | Evidencia | Casos | Estado |
 |---|---|---:|---|
 | Vista previa Office | `osiris/apps/campos/tests.py` | 9 métodos | [VERIFICADO] existen; [NO VERIFICADO] ejecución en esta inspección |
+| Referencias y proxy documental | `osiris/apps/campos/tests.py: ReferenciaDocumentoTests` | Cifrado, ES, Bearer, upstream, límites y timeout | [VERIFICADO] existen; sin E2E con servicios reales |
 | Observatorios | `osiris/apps/observatorios/tests/test_views.py` | 2 métodos | [VERIFICADO] existen; requieren Elasticsearch |
 | Otras aplicaciones | `osiris/apps/*/tests.py` | Archivos vacíos o ausentes | [VERIFICADO] sin cobertura ejecutable identificada |
 

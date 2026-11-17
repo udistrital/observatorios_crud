@@ -5,6 +5,8 @@ from .views import (
     EstructuraCamposViewSet,
     ArchivosDatosView,
     DatosEstructuraDocumentoView,
+    ContenidoDocumentoView,
+    ReferenciaDocumentoView,
     VistaPreviaDocumentoView,
 )
 
@@ -23,6 +25,18 @@ estructura_detalle = EstructuraCamposViewSet.as_view({
 
 
 urlpatterns = [
+    path(
+        "documentos/referencias/",
+        ReferenciaDocumentoView.as_view(),
+        name="referencia-documento"
+    ),
+
+    path(
+        "documentos/<str:referencia>/",
+        ContenidoDocumentoView.as_view(),
+        name="contenido-documento"
+    ),
+
     path(
         "tipos",
         TiposCamposVista.as_view(),

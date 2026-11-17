@@ -2,17 +2,22 @@ import io
 import logging
 import os
 import pwd
+import re
 import signal
 import subprocess
 import tempfile
 import threading
+import time
 import zipfile
 from pathlib import Path
+from urllib.parse import quote, urlsplit
 from xml.etree import ElementTree
 
+import certifi
 import olefile
+import urllib3
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from elasticsearch import NotFoundError
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser
@@ -23,8 +28,19 @@ from rest_framework.viewsets import ViewSet
 
 from apps.elasticsearch_utils.utils import get_elasticsearch_client
 
+from .documentos import (
+    DocumentoNoAsociado,
+    PATRON_DOCUMENTO_GESTOR,
+    ReferenciaDocumentoInvalida,
+    cifrar_referencia_documento,
+    descifrar_referencia_documento,
+    validar_asociacion_documento,
+)
 from .models import EstructuraCamposModelo
-from .serializers import EstructuraUpdateSerializer
+from .serializers import (
+    EstructuraUpdateSerializer,
+    ReferenciaDocumentoSerializer,
+)
 from .utils import (
     aplicar_filtros,
     aplicar_migraciones_data,
@@ -49,6 +65,410 @@ TIPOS_OFFICE_PERMITIDOS = {
 MIMES_GENERICOS = {"", "application/octet-stream"}
 FIRMA_OLE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 SEMAFORO_CONVERSION = threading.BoundedSemaphore(1)
+SEMAFORO_PROXY_DOCUMENTAL = threading.BoundedSemaphore(
+    settings.DOCUMENT_PROXY_MAX_CONCURRENT
+)
+
+
+class ErrorConsultaGestor(Exception):
+    def __init__(self, mensaje, codigo_estado):
+        super().__init__(mensaje)
+        self.mensaje = mensaje
+        self.codigo_estado = codigo_estado
+
+
+def descartar_respuesta_gestor(respuesta):
+    try:
+        respuesta.close()
+    finally:
+        respuesta.release_conn()
+
+
+def obtener_documento_gestor(documento_id, autorizacion):
+    base_url = settings.GESTOR_DOCUMENTAL
+    url_configurada = urlsplit(base_url)
+
+    if (
+        url_configurada.scheme not in {"http", "https"}
+        or not url_configurada.netloc
+        or not url_configurada.hostname
+        or url_configurada.username
+        or url_configurada.password
+        or url_configurada.query
+        or url_configurada.fragment
+        or (
+            url_configurada.scheme != "https"
+            and (
+                not settings.GESTOR_DOCUMENTAL_ALLOW_HTTP
+                or not settings.DEBUG
+                or settings.USE_SSM
+            )
+        )
+    ):
+        if url_configurada.scheme == "http":
+            logger.warning(
+                "Configuración del Gestor Documental rechazada: se requiere HTTPS."
+            )
+        else:
+            logger.warning(
+                "Configuración del Gestor Documental ausente o inválida."
+            )
+
+        raise ErrorConsultaGestor(
+            "El servicio documental no está configurado.",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    if not PATRON_DOCUMENTO_GESTOR.fullmatch(str(documento_id or "")):
+        raise ErrorConsultaGestor(
+            "El documento solicitado no es válido.",
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    cliente_http = urllib3.PoolManager(
+        cert_reqs="CERT_REQUIRED",
+        ca_certs=certifi.where(),
+    )
+    url = f"{base_url}/document/{quote(str(documento_id), safe='')}"
+
+    try:
+        respuesta = cliente_http.request(
+            "GET",
+            url,
+            headers={
+                "Authorization": autorizacion,
+                "Accept": "application/json",
+            },
+            preload_content=False,
+            redirect=False,
+            retries=False,
+            timeout=urllib3.Timeout(
+                connect=settings.GESTOR_DOCUMENTAL_CONNECT_TIMEOUT_SECONDS,
+                read=settings.GESTOR_DOCUMENTAL_READ_TIMEOUT_SECONDS,
+            ),
+        )
+    except urllib3.exceptions.TimeoutError as error:
+        raise ErrorConsultaGestor(
+            "El Gestor Documental excedió el tiempo de respuesta.",
+            status.HTTP_504_GATEWAY_TIMEOUT,
+        ) from error
+    except urllib3.exceptions.HTTPError as error:
+        raise ErrorConsultaGestor(
+            "El Gestor Documental no está disponible.",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        ) from error
+
+    if respuesta.status != status.HTTP_200_OK:
+        codigo_estado = {
+            status.HTTP_401_UNAUTHORIZED: status.HTTP_403_FORBIDDEN,
+            status.HTTP_403_FORBIDDEN: status.HTTP_403_FORBIDDEN,
+            status.HTTP_404_NOT_FOUND: status.HTTP_404_NOT_FOUND,
+        }.get(respuesta.status, status.HTTP_502_BAD_GATEWAY)
+        descartar_respuesta_gestor(respuesta)
+        raise ErrorConsultaGestor(
+            "El Gestor Documental rechazó la consulta.",
+            codigo_estado,
+        )
+
+    content_type = str(
+        respuesta.headers.get("Content-Type") or ""
+    ).lower()
+
+    if content_type.split(";", 1)[0].strip() != "application/json":
+        descartar_respuesta_gestor(respuesta)
+        raise ErrorConsultaGestor(
+            "El Gestor Documental retornó una respuesta inválida.",
+            status.HTTP_502_BAD_GATEWAY,
+        )
+
+    content_length = respuesta.headers.get("Content-Length")
+
+    if content_length:
+        try:
+            longitud = int(content_length)
+            excede_limite = (
+                longitud < 0
+                or longitud > settings.DOCUMENT_PROXY_MAX_BYTES
+            )
+        except (TypeError, ValueError):
+            excede_limite = True
+
+        if excede_limite:
+            descartar_respuesta_gestor(respuesta)
+            raise ErrorConsultaGestor(
+                "El documento supera el límite permitido.",
+                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+    return respuesta
+
+
+def almacenar_respuesta_gestor(respuesta):
+    archivo = tempfile.SpooledTemporaryFile(
+        max_size=settings.DOCUMENT_PROXY_SPOOL_MAX_BYTES,
+        mode="w+b",
+    )
+    total = 0
+    completada = False
+    tiempo_agotado = threading.Event()
+    limite_tiempo = (
+        time.monotonic()
+        + settings.GESTOR_DOCUMENTAL_TOTAL_TIMEOUT_SECONDS
+    )
+
+    def cancelar_respuesta_lenta():
+        tiempo_agotado.set()
+
+        try:
+            respuesta.shutdown()
+        except (AttributeError, OSError, ValueError):
+            respuesta.close()
+
+    temporizador = threading.Timer(
+        settings.GESTOR_DOCUMENTAL_TOTAL_TIMEOUT_SECONDS,
+        cancelar_respuesta_lenta,
+    )
+    temporizador.daemon = True
+    temporizador.start()
+
+    try:
+        for bloque in respuesta.stream(64 * 1024, decode_content=True):
+            if tiempo_agotado.is_set() or time.monotonic() > limite_tiempo:
+                raise ErrorConsultaGestor(
+                    "El Gestor Documental excedió el tiempo total de respuesta.",
+                    status.HTTP_504_GATEWAY_TIMEOUT,
+                )
+
+            total += len(bloque)
+
+            if total > settings.DOCUMENT_PROXY_MAX_BYTES:
+                raise ErrorConsultaGestor(
+                    "El documento supera el límite permitido.",
+                    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                )
+
+            archivo.write(bloque)
+
+        temporizador.cancel()
+
+        if tiempo_agotado.is_set():
+            raise ErrorConsultaGestor(
+                "El Gestor Documental excedió el tiempo total de respuesta.",
+                status.HTTP_504_GATEWAY_TIMEOUT,
+            )
+
+        completada = True
+    except urllib3.exceptions.TimeoutError as error:
+        archivo.close()
+        raise ErrorConsultaGestor(
+            "El Gestor Documental excedió el tiempo de respuesta.",
+            status.HTTP_504_GATEWAY_TIMEOUT,
+        ) from error
+    except urllib3.exceptions.HTTPError as error:
+        archivo.close()
+
+        if tiempo_agotado.is_set():
+            raise ErrorConsultaGestor(
+                "El Gestor Documental excedió el tiempo total de respuesta.",
+                status.HTTP_504_GATEWAY_TIMEOUT,
+            ) from error
+
+        raise ErrorConsultaGestor(
+            "El Gestor Documental no está disponible.",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        ) from error
+    except Exception as error:
+        archivo.close()
+
+        if tiempo_agotado.is_set():
+            raise ErrorConsultaGestor(
+                "El Gestor Documental excedió el tiempo total de respuesta.",
+                status.HTTP_504_GATEWAY_TIMEOUT,
+            ) from error
+
+        raise
+    finally:
+        temporizador.cancel()
+
+        if not completada:
+            respuesta.close()
+        respuesta.release_conn()
+
+    archivo.seek(0)
+    return archivo
+
+
+class ArchivoDocumentoConCupo:
+    def __init__(self, archivo, semaforo):
+        self.archivo = archivo
+        self.semaforo = semaforo
+        self.cerrado = False
+
+    def __getattr__(self, nombre):
+        return getattr(self.archivo, nombre)
+
+    def close(self):
+        if self.cerrado:
+            return
+
+        self.cerrado = True
+
+        try:
+            self.archivo.close()
+        finally:
+            self.semaforo.release()
+
+
+class DocumentoProtegidoMixin:
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "document_proxy"
+
+    def obtener_autorizacion(self, request):
+        autorizacion = request.headers.get("Authorization", "")
+
+        if not re.fullmatch(r"Bearer [^\s]+", autorizacion):
+            return None
+
+        return autorizacion
+
+    def respuesta_sin_autenticacion(self):
+        response = Response(
+            {"detalle": "Se requiere autenticación para consultar documentos."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+        response["WWW-Authenticate"] = "Bearer"
+        return response
+
+    def validar_contexto(self, contexto):
+        cliente = get_elasticsearch_client()
+        return validar_asociacion_documento(cliente, **contexto)
+
+
+class ReferenciaDocumentoView(DocumentoProtegidoMixin, APIView):
+    def post(self, request, *args, **kwargs):
+        if not self.obtener_autorizacion(request):
+            return self.respuesta_sin_autenticacion()
+
+        serializer = ReferenciaDocumentoSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                {"detalle": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            contexto = self.validar_contexto(serializer.validated_data)
+            referencia = cifrar_referencia_documento(contexto)
+        except DocumentoNoAsociado:
+            return Response(
+                {"detalle": "El documento no pertenece al contexto indicado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except RuntimeError:
+            logger.exception("Configuración documental inválida")
+            return Response(
+                {"detalle": "El servicio documental no está disponible."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except Exception:
+            logger.exception("Error al validar una referencia documental")
+            return Response(
+                {"detalle": "No fue posible validar el documento."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response(
+            {"referencia": referencia},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ContenidoDocumentoView(DocumentoProtegidoMixin, APIView):
+    def get(self, request, referencia, *args, **kwargs):
+        autorizacion = self.obtener_autorizacion(request)
+
+        if not autorizacion:
+            return self.respuesta_sin_autenticacion()
+
+        try:
+            contexto = descifrar_referencia_documento(referencia)
+        except ReferenciaDocumentoInvalida:
+            return Response(
+                {"detalle": "La referencia documental no es válida o expiró."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except RuntimeError:
+            logger.exception("Configuración documental inválida")
+            return Response(
+                {"detalle": "El servicio documental no está disponible."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            contexto = self.validar_contexto(contexto)
+        except DocumentoNoAsociado:
+            return Response(
+                {"detalle": "El documento ya no está disponible."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception:
+            logger.exception("Error al revalidar una referencia documental")
+            return Response(
+                {"detalle": "No fue posible validar el documento."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if not SEMAFORO_PROXY_DOCUMENTAL.acquire(blocking=False):
+            return Response(
+                {"detalle": "El servicio documental está ocupado."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        cupo_transferido = False
+        archivo_con_cupo = None
+
+        try:
+            respuesta_gestor = obtener_documento_gestor(
+                contexto["documento_id"],
+                autorizacion,
+            )
+            content_type = respuesta_gestor.headers.get(
+                "Content-Type",
+                "application/json",
+            )
+            archivo = almacenar_respuesta_gestor(respuesta_gestor)
+            archivo_con_cupo = ArchivoDocumentoConCupo(
+                archivo,
+                SEMAFORO_PROXY_DOCUMENTAL,
+            )
+            response = FileResponse(
+                archivo_con_cupo,
+                content_type=content_type,
+                as_attachment=False,
+            )
+            response["Cache-Control"] = "private, no-store"
+            response["Pragma"] = "no-cache"
+            response["X-Content-Type-Options"] = "nosniff"
+            cupo_transferido = True
+            return response
+        except ErrorConsultaGestor as error:
+            return Response(
+                {"detalle": error.mensaje},
+                status=error.codigo_estado,
+            )
+        except Exception:
+            logger.exception("Error inesperado al consultar el Gestor Documental")
+            return Response(
+                {"detalle": "El Gestor Documental no está disponible."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        finally:
+            if not cupo_transferido:
+                if archivo_con_cupo:
+                    archivo_con_cupo.close()
+                else:
+                    SEMAFORO_PROXY_DOCUMENTAL.release()
 
 
 class ErrorVistaPrevia(Exception):

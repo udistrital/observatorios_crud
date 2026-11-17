@@ -11,8 +11,9 @@
 ## Diagrama de contexto
 ```mermaid
 flowchart LR
-  C[observatorios_cliente] -->|CRUD REST| CRUD[observatorios_crud]
-  C -->|binarios| GD[Gestor Documental]
+  C[observatorios_cliente] -->|CRUD REST y visor| CRUD[observatorios_crud]
+  C -->|carga reemplazo eliminación| GD[Gestor Documental]
+  CRUD -->|consulta validada| GD
   MID[observatorios_mid legado] -.->|datosArchivo no verificado| CRUD
   CRUD --> ES[(Elasticsearch)]
 ```
@@ -21,7 +22,8 @@ flowchart LR
 | Sistema origen | Interacción | Resultado |
 |---|---|---|
 | `observatorios_cliente` | Consumo de endpoints `api/v1` | Operación funcional del módulo observatorios |
-| `observatorios_cliente` | Gestor Documental y luego campos/datos en CRUD | Binario separado de metadatos/hash |
+| `observatorios_cliente` | Gestor para mutaciones y CRUD para datos/visualización | Binario separado de metadatos/hash; visor sin GET directo al Gestor |
+| `observatorios_crud` | Referencia cifrada, revalidación ES y GET fijo al Gestor | JSON documental limitado y sin caché |
 | `observatorios_mid` | Código legado hacia `datosArchivo` | [INFERIDO] no operativo con el modelo actual |
 
 ## Riesgos técnicos

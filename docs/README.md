@@ -1,6 +1,8 @@
 # Documentación técnica de `observatorios_crud`
 
-Fuente inspeccionada: rama `feature/campo_orden`, commit `3de996b`, 2026-11-10.
+Fuente inspeccionada: `f51497c` más la implementación local de
+`PROY-TOBE-008`, 2026-11-12. La evidencia es estática y de pruebas unitarias; no
+incluye verificación end-to-end.
 
 ## Ruta de lectura mínima
 

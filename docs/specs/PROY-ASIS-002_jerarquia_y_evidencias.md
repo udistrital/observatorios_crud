@@ -6,7 +6,7 @@
 |---|---|
 | Sistema | `observatorios_crud` |
 | Estado | AS-IS |
-| Referencia | `3de996b`, 2026-11-10 |
+| Referencia | `f51497c` + `PROY-TOBE-008`, 2026-11-11 |
 | Evidencia principal | `osiris/apps/{procesos,factores,caracteristicas,aspectos,estructuras}/` |
 
 ## Contexto y alcance
@@ -27,6 +27,7 @@ migración de datos, binarios y funcionamiento del cliente.
 | REQ-JER-004 | Asociar aspecto con característica. | BR-JER-004: `tipo_evidencia` de referencias es Documental o Tabla. |
 | REQ-JER-005 | Crear estructura dinámica. | BR-JER-005: índice `atlas_estructura_<tipo>_<uuid>`. |
 | REQ-JER-006 | Consultar/mover/desactivar nodos. | BR-JER-006: PUT/PATCH son parciales; actualizaciones padre/hijo son separadas. |
+| REQ-JER-007 | Validar contexto de visualización documental. | BR-JER-007: referencias documentales recorren la cadena activa estructura→aspecto→característica→factor→proceso y exigen coincidencia exacta con los IDs solicitados. |
 
 ## Escenario principal
 
@@ -45,11 +46,15 @@ escrituras puede dejar estado parcial.
   marca inactivo y se devuelve el estado específico de la ruta.
 - **AC-JER-004**: Dado un fallo de la segunda escritura, entonces no se presupone
   rollback salvo compensación explícita del handler.
+- **AC-JER-005**: Dado un nodo inactivo o un factor/proceso ajeno, cuando se pide o
+  consume una referencia documental, entonces la asociación se rechaza sin
+  consultar el Gestor.
 
 ## Contratos y NFR
 
 Rutas y respuestas: [`../api/openapi.yaml`](../api/openapi.yaml). [VERIFICADO] No
-hay transacción multiíndice ni autorización por objeto. [NO VERIFICADO] Límites de
+hay transacción multiíndice ni autorización por objeto. La nueva validación de
+asociación no constituye ACL por proceso. [NO VERIFICADO] Límites de
 rendimiento, disponibilidad y concurrencia.
 
 ## Pruebas, riesgos y dudas

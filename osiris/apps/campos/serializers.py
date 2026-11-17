@@ -1,5 +1,17 @@
 from rest_framework import serializers
 
+from .documentos import PATRON_DOCUMENTO_GESTOR
+
+
+class ReferenciaDocumentoSerializer(serializers.Serializer):
+    proceso_id = serializers.CharField(max_length=255)
+    factor_id = serializers.CharField(max_length=255)
+    estructura_id = serializers.CharField(max_length=255)
+    documento_id = serializers.RegexField(
+        PATRON_DOCUMENTO_GESTOR,
+        max_length=36,
+    )
+
 
 class CampoSerializer(serializers.Serializer):
     campo_id = serializers.CharField(
